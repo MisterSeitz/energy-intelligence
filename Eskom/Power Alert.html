@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<!-- saved from url=(0029)https://www.poweralert.co.za/ -->
+<html lang="en" class="k-webkit k-webkit144"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Power Alert</title>
+    <link href="./Power Alert_files/kendo.common.min.css" rel="stylesheet">
+    <link href="./Power Alert_files/kendo.default.min.css" rel="stylesheet">
+    <link href="./Power Alert_files/bootstrap-4.0.0.css" rel="stylesheet">
+    <script src="./Power Alert_files/jquery-3.3.1.js.download"></script>
+    <script src="./Power Alert_files/kendo.all.min.js.download"></script>
+    <script src="./Power Alert_files/popper.min.js.download"></script>
+    <script src="./Power Alert_files/bootstrap-4.0.0.js.download"></script>
+    <script type="text/javascript">
+
+        var forecastsJson = null;
+        var apiUrl = "https://www.poweralert.co.za/PowerAlertAPI/api/PowerAlertForecast/";        
+        
+        window.setInterval(function () {
+            ProcessPageForecastActions();
+        }, 60000);
+
+
+        $(function () {
+            BindForecastChart();
+            CheckCurrentStatus();            
+        });
+
+        function ProcessPageForecastActions()
+        {
+            BindForecastChart();
+            CheckCurrentStatus();
+        }
+
+        function BindForecastChart() {
+            $.ajax({
+                url: apiUrl + 'PowerAlertForecasts',
+                type: 'Get',
+                dataType: 'jsonp',
+                jsonpCallback: "createChart"
+            });
+        }
+
+        function createChart(forecasts)
+        {
+            forecastsJson = forecasts;
+            var flag = true;
+
+            var min = Math.min.apply(null, forecasts.map(function (a) { return a.LoadForecast; }));
+            var max = Math.max.apply(null, forecasts.map(function (a) { return a.LoadForecast; }));
+
+            var minTime = Math.min.apply(null, forecasts.map(function (a) { return a.Timestamp; }));
+            var maxTime = Math.max.apply(null, forecasts.map(function (a) { return a.Timestamp; }));
+
+            if ($.isNumeric(min)) {
+                min = min - 2000;
+            }
+            else {
+                min = 15000;
+            }
+
+            if ($.isNumeric(max)) {
+                max = max + 10000;
+            }
+            else {
+                max = 35000;
+            }
+
+            var counter = 1;
+
+            $("#chart").kendoChart({
+                dataSource: {
+                    data: forecastsJson
+                },
+                legend: {
+                    visible: false //Sets visibility of legend if any
+                },
+                seriesDefaults: {
+                    type: "column",
+                    labels: {
+                        visible: true,
+                        background: "transparent",
+                        rotation: 90
+                    },
+                    border: function (e) {
+
+                        var currentDate = new Date();
+                        var formattedTime = e.category + ":00";
+                        var currentHour = (currentDate.getUTCHours() + 2 == "24") ? "0" + ":00" : currentDate.getUTCHours() + 2 + ":00";
+
+                        if (formattedTime == currentHour) {
+                            return {
+                                dashType: "solid",
+                                color: "black",
+                                width:2
+                            };
+                        }
+                        else {
+                            return {};
+                        }
+                    }
+                },
+                series: [{
+                    type: "column",
+                    field: "LoadForecast",
+                    categoryField: "Hour",
+                    colorField: "Color",
+                    labels: {
+                        visible: false, //Sets the visibiliity of the label for each bar
+                        rotation: 90
+                    }}],
+                valueAxis: {
+                    min: min,
+                    max: max,
+                    majorGridLines: {
+                        visible: true
+                    },
+                    visible: true,
+                    labels:true
+                },
+                categoryAxis: {
+                    labels: {
+                        visual: function (e) {
+                            var currentDate = new Date();
+                            var formattedTime = e.text + ":00";
+                            var currentHour = (currentDate.getUTCHours() + 2 == "24") ? "0" + ":00" : currentDate.getUTCHours() + 2 + ":00";
+
+                            console.log(formattedTime + '-' + currentHour);
+                            var htmlContent;
+
+                            if (formattedTime == currentHour) {
+                                htmlContent = '<div style="font-size:20px;font-weight:bold;color:blue;-webkit-transform: rotate(-90deg);-moz-transform: rotate(-90deg);filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);"><b>NOW</b></div>';
+                            }
+                            else {
+                                htmlContent = '<div style="font-size:15px;font-weight:bold;color:black;-webkit-transform: rotate(-90deg);-moz-transform: rotate(-90deg);filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);">' + formattedTime + '</div>';
+                            }
+
+                            var html = $(htmlContent)
+                                .appendTo(document.body);
+
+                            // Create an empty group that will hold the rendered label
+                            var visual = new kendo.drawing.Group();
+
+                            var rect = e.rect;
+
+                            kendo.drawing.drawDOM(html)
+                                .done(function (group) {
+                                    // Clean-up HTML fragment
+                                    html.remove();
+
+                                    // Center the label using Layout
+                                    var layout = new kendo.drawing.Layout(rect, {
+                                        justifyContent: "center"
+                                    });
+                                    layout.append(group);
+                                    layout.reflow();
+
+                                    // Render the content
+                                    visual.append(layout);
+                                });
+
+                            return visual;
+                        }
+                    },
+                    majorGridLines: {
+                    visible: false
+                }
+                }
+            });
+        }
+
+        function CheckCurrentStatus() {
+            $.ajax({
+                url: apiUrl + 'CurrentSystemStatus',
+                type: 'Get',
+                dataType: 'jsonp',
+                jsonpCallback: "maintainCurrentStatus"
+            });
+        }
+
+        function maintainCurrentStatus(currentStatus) {
+            if (currentStatus.Color == "Green")
+            {
+                document.getElementById("pageHeader").className = "navbar navbar-expand-lg navbar-dark fixed-top bg-green";
+                document.getElementById("headerStatusPic").src = "images/Grid_Stable.gif";
+                document.getElementById("headerStatusPic").alt = "Grid is stable";
+                document.getElementById("pageFooter").className = "footerbg-pwrstable";
+            }
+            else if (currentStatus.Color == "Orange")
+            {
+                document.getElementById("pageHeader").className = "navbar navbar-expand-lg navbar-dark fixed-top bg-orange";
+                document.getElementById("headerStatusPic").src = "images/Grid_Strained.gif";
+                document.getElementById("headerStatusPic").alt = "Grid is strained";
+                document.getElementById("pageFooter").className = "footerbg-pwrstrained";
+            }
+            else if (currentStatus.Color == "Red")
+            {
+                document.getElementById("pageHeader").className = "navbar navbar-expand-lg navbar-dark fixed-top bg-red";
+                document.getElementById("headerStatusPic").src = "images/Grid_Severe.gif";
+                document.getElementById("headerStatusPic").alt = "Grid is severe";
+                document.getElementById("pageFooter").className = "footerbg-pwrsevere";
+            }
+            else if (currentStatus.Color == "Black")
+            {
+                document.getElementById("pageHeader").className = "navbar navbar-expand-lg navbar-dark fixed-top bg-dark";
+                document.getElementById("headerStatusPic").src = "images/Grid_Critical.gif";
+                document.getElementById("headerStatusPic").alt = "Grid is critical";
+                document.getElementById("pageFooter").className = "footerbg-pwrcritical";
+            }
+            else
+            {
+                document.getElementById("pageHeader").className = "fnavbar navbar-expand-lg navbar-dark fixed-top bg-green";
+                document.getElementById("headerStatusPic").src = "images/Grid_Stable.gif";
+                document.getElementById("headerStatusPic").alt = "Grid is severe";
+                document.getElementById("pageFooter").className = "footerbg-pwrstable";
+            }
+        }
+
+        $(window).resize(function () {
+            kendo.resize($("div.k-chart[data-role='chart']"));
+        });
+
+        $(document).ready(createChart);
+        $(document).bind("kendo:skinChange", createChart);
+   
+    </script>
+</head>
+
+<body class="d-flex flex-column">
+
+    <nav id="pageHeader" class="navbar navbar-expand-lg navbar-dark fixed-top bg-green">
+        <a class="navbar-brand" href="https://www.poweralert.co.za/#"><img src="./Power Alert_files/poweralertlogo.png" alt="" width="80" height="80" class="img-fluid"></a>
+        <div class="ml-auto mr-1"><img id="headerStatusPic" src="./Power Alert_files/Grid_Stable.gif" width="100%" height="100%" alt="Grid is stable"></div>
+    </nav>
+
+    <section>
+        <div class="container-fluid flex-fill">
+            <div class="row-fluid flex-fill">
+                <div class="col-12 text-center" style="background-color:white;height:650px">
+                    <div id="chart" style="min-height: 100%; margin-top: 30px; position: relative;" data-role="chart" class=" k-chart"><svg style="width: 100%; height: 100%; overflow: hidden;" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1"><defs><clippath id="kdef53998"><path d="M14.5 5.5 L 1854.5 5.5 1854.5 583.5 14.5 583.5Z" stroke="#000" stroke-linejoin="miter" fill="none"></path></clippath><lineargradient id="kdef53999" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox"><stop offset="0" style="stop-color:#fff;stop-opacity:0;"></stop><stop offset="0.25" style="stop-color:#fff;stop-opacity:0.3;"></stop><stop offset="1" style="stop-color:#fff;stop-opacity:0;"></stop></lineargradient><clippath id="kdef53973"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53974"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53975"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53976"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53977"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53978"><path d="M0 843.797 L 1920 843.797 1920 879.797 0 879.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53979"><path d="M0 847.797 L 52.609 847.797 52.609 874.797 0 874.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53980"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53981"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53982"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53983"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53984"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53985"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53986"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53987"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53988"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53989"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53990"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53991"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53992"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53993"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53994"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53995"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53996"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath><clippath id="kdef53997"><path d="M0 843.797 L 1920 843.797 1920 870.797 0 870.797Z" stroke="none" fill="none"></path></clippath></defs><g><path d="M0 0 L 1860 0 1860 650 0 650Z" stroke="none" fill="#fff"></path><path d="M14 5 L 1854 5 1854 583.391 14 583.391Z" stroke="none" fill="#fff" fill-opacity="0"></path><g><g></g><g><path d="M14.5 583.5 L 1854.5 583.5" stroke="#dfdfdf" stroke-width="1" fill="none"></path><path d="M14.5 512.5 L 1854.5 512.5" stroke="#dfdfdf" stroke-width="1" fill="none"></path><path d="M14.5 441.5 L 1854.5 441.5" stroke="#dfdfdf" stroke-width="1" fill="none"></path><path d="M14.5 370.5 L 1854.5 370.5" stroke="#dfdfdf" stroke-width="1" fill="none"></path><path d="M14.5 299.5 L 1854.5 299.5" stroke="#dfdfdf" stroke-width="1" fill="none"></path><path d="M14.5 228.5 L 1854.5 228.5" stroke="#dfdfdf" stroke-width="1" fill="none"></path><path d="M14.5 157.5 L 1854.5 157.5" stroke="#dfdfdf" stroke-width="1" fill="none"></path><path d="M14.5 86.5 L 1854.5 86.5" stroke="#dfdfdf" stroke-width="1" fill="none"></path><path d="M14.5 16.5 L 1854.5 16.5" stroke="#dfdfdf" stroke-width="1" fill="none"></path></g><g><g><g><path d="M14.5 583.5 L 1854.5 583.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M14.5 583.5 L 14.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M91.5 583.5 L 91.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M167.5 583.5 L 167.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M244.5 583.5 L 244.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M321.5 583.5 L 321.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M397.5 583.5 L 397.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M474.5 583.5 L 474.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M551.5 583.5 L 551.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M627.5 583.5 L 627.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M704.5 583.5 L 704.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M781.5 583.5 L 781.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M857.5 583.5 L 857.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M934.5 583.5 L 934.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1011.5 583.5 L 1011.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1087.5 583.5 L 1087.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1164.5 583.5 L 1164.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1241.5 583.5 L 1241.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1317.5 583.5 L 1317.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1394.5 583.5 L 1394.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1471.5 583.5 L 1471.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1547.5 583.5 L 1547.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1624.5 583.5 L 1624.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1701.5 583.5 L 1701.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1777.5 583.5 L 1777.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M1854.5 583.5 L 1854.5 587.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path></g></g></g><g clip-path="url(#kdef53998)"><g><g><g><path d="M37.5 500.5 L 68.5 500.5 68.5 1142.5 37.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M37.5 500.5 L 68.5 500.5 68.5 1142.5 37.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M114.5 485.5 L 145.5 485.5 145.5 1142.5 114.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M114.5 485.5 L 145.5 485.5 145.5 1142.5 114.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M190.5 461.5 L 221.5 461.5 221.5 1142.5 190.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M190.5 461.5 L 221.5 461.5 221.5 1142.5 190.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M267.5 410.5 L 298.5 410.5 298.5 1142.5 267.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M267.5 410.5 L 298.5 410.5 298.5 1142.5 267.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M344.5 360.5 L 375.5 360.5 375.5 1142.5 344.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M344.5 360.5 L 375.5 360.5 375.5 1142.5 344.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M420 380 L 451 380 451 1142 420 1142Z" stroke="black" stroke-width="2" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M420 380 L 451 380 451 1142 420 1142Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M497.5 417.5 L 528.5 417.5 528.5 1142.5 497.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M497.5 417.5 L 528.5 417.5 528.5 1142.5 497.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M574.5 460.5 L 605.5 460.5 605.5 1142.5 574.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M574.5 460.5 L 605.5 460.5 605.5 1142.5 574.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M650.5 486.5 L 681.5 486.5 681.5 1142.5 650.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M650.5 486.5 L 681.5 486.5 681.5 1142.5 650.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M727.5 471.5 L 758.5 471.5 758.5 1142.5 727.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M727.5 471.5 L 758.5 471.5 758.5 1142.5 727.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M804.5 481.5 L 835.5 481.5 835.5 1142.5 804.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M804.5 481.5 L 835.5 481.5 835.5 1142.5 804.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path><path d="M804.5 481.5 L 834.5 481.5 834.5 1142.5 804.5 1142.5Z" stroke="#fff" stroke-width="1" stroke-opacity="0.2" fill="#fff" fill-opacity="0.2" style="display: none;"></path></g></g><g><g><path d="M880.5 486.5 L 911.5 486.5 911.5 1142.5 880.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M880.5 486.5 L 911.5 486.5 911.5 1142.5 880.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M957.5 483.5 L 988.5 483.5 988.5 1142.5 957.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M957.5 483.5 L 988.5 483.5 988.5 1142.5 957.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M1034.5 470.5 L 1065.5 470.5 1065.5 1142.5 1034.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M1034.5 470.5 L 1065.5 470.5 1065.5 1142.5 1034.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M1110.5 453.5 L 1141.5 453.5 1141.5 1142.5 1110.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M1110.5 453.5 L 1141.5 453.5 1141.5 1142.5 1110.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M1187.5 439.5 L 1218.5 439.5 1218.5 1142.5 1187.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M1187.5 439.5 L 1218.5 439.5 1218.5 1142.5 1187.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M1264.5 444.5 L 1295.5 444.5 1295.5 1142.5 1264.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M1264.5 444.5 L 1295.5 444.5 1295.5 1142.5 1264.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M1340.5 440.5 L 1371.5 440.5 1371.5 1142.5 1340.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M1340.5 440.5 L 1371.5 440.5 1371.5 1142.5 1340.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M1417.5 457.5 L 1448.5 457.5 1448.5 1142.5 1417.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M1417.5 457.5 L 1448.5 457.5 1448.5 1142.5 1417.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M1494.5 475.5 L 1525.5 475.5 1525.5 1142.5 1494.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M1494.5 475.5 L 1525.5 475.5 1525.5 1142.5 1494.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M1570.5 486.5 L 1601.5 486.5 1601.5 1142.5 1570.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M1570.5 486.5 L 1601.5 486.5 1601.5 1142.5 1570.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M1647.5 501.5 L 1678.5 501.5 1678.5 1142.5 1647.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M1647.5 501.5 L 1678.5 501.5 1678.5 1142.5 1647.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M1724.5 508.5 L 1755.5 508.5 1755.5 1142.5 1724.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M1724.5 508.5 L 1755.5 508.5 1755.5 1142.5 1724.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g><g><g><path d="M1800.5 512.5 L 1831.5 512.5 1831.5 1142.5 1800.5 1142.5Z" stroke="#006600" stroke-opacity="1" fill="Green" fill-opacity="1"></path><path d="M1800.5 512.5 L 1831.5 512.5 1831.5 1142.5 1800.5 1142.5Z" stroke="none" fill="url(#kdef53999)"></path></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-899.6665,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53973)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">15:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-823,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53974)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">16:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-746.3335,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53975)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">17:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-669.6665,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53976)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">18:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-593,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53977)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">19:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-516.3335,-1169.296875)"><g transform="matrix(0,-1,1,0,90.703125,1814.296875)"><g clip-path="url(#kdef53978)"></g><g><g clip-path="url(#kdef53979)"></g><text style="font:normal normal 900 20px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="869.796875" stroke="none" fill="rgb(0, 0, 255)">NOW</text></g></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-439.6665,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53980)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">21:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-363,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53981)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">22:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-286.3335,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53982)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">23:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-209.6665,-1187.453125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53983)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">0:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-133,-1187.453125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53984)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">1:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,-56.3335,-1187.453125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53985)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">2:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,20.3335,-1187.453125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53986)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">3:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,97,-1187.453125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53987)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">4:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,173.6665,-1187.453125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53988)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">5:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,250.3335,-1187.453125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53989)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">6:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,327,-1187.453125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53990)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">7:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,403.6665,-1187.453125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53991)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">8:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,480.3335,-1187.453125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53992)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">9:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,557,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53993)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">10:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,633.6665,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53994)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">11:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,710.3335,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53995)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">12:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,787,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53996)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">13:00</text></g></g></g></g><g><g><g transform="matrix(1,0,0,1,863.6665,-1178.828125)"><g transform="matrix(0,-1,1,0,95.203125,1809.796875)"><g clip-path="url(#kdef53997)"></g><text style="font:normal normal 700 15px -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto, &quot;Helvetica Neue&quot;, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;, &quot;Segoe UI Symbol&quot;;white-space:pre;" x="0" y="862.796875" stroke="none" fill="rgb(0, 0, 0)">14:00</text></g></g></g></g><g><g><path d="M14.5 5.5 L 14.5 583.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M10.5 583.5 L 14.5 583.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M10.5 512.5 L 14.5 512.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M10.5 441.5 L 14.5 441.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M10.5 370.5 L 14.5 370.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M10.5 299.5 L 14.5 299.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M10.5 228.5 L 14.5 228.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M10.5 157.5 L 14.5 157.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M10.5 86.5 L 14.5 86.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path><path d="M10.5 16.5 L 14.5 16.5" stroke="#8e8e8e" stroke-width="1" fill="none"></path></g></g></g><g></g></g></svg></div>
+                </div>
+            </div>
+        </div>
+		
+		<br>
+    </section>
+	<section>
+		<div class="survey">
+		<!--
+		<p align="center">Take a minute - help us improve <a href="https://5568sj2edup.typeform.com/to/dGq99elA"><img src="images/survey.jpg"</a><br/></p>-->
+		</div>
+	</section>
+
+    <footer id="pageFooter" class="footerbg-pwrstable">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+				
+                </div>
+            </div>
+        </div>
+    </footer>
+
+<script defer="" src="./Power Alert_files/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;version&quot;:&quot;2024.11.0&quot;,&quot;token&quot;:&quot;80d174b6a72241aa9857e5b0e0fac52d&quot;,&quot;server_timing&quot;:{&quot;name&quot;:{&quot;cfCacheStatus&quot;:true,&quot;cfEdge&quot;:true,&quot;cfExtPri&quot;:true,&quot;cfL4&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfSpeedBrain&quot;:true},&quot;location_startswith&quot;:null}}" crossorigin="anonymous"></script>
+
+
+</body></html>

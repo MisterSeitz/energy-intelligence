@@ -1,0 +1,13 @@
+{
+    "actorSpecification": 1,
+    "name": "my-actor-1",
+    "title": "Empty Python project",
+    "description": "Empty project in Python.",
+    "version": "0.0",
+    "buildTag": "latest",
+    "meta": {
+        "templateId": "python-empty",
+        "generatedBy": "<FILL-IN-MODEL>"
+    },
+    "dockerfile": "../Dockerfile"
+}

@@ -1,0 +1,1224 @@
+﻿(function () {
+
+    var timer;
+    var CurrStage = 0;
+
+
+    $(function () {
+
+        $("input#suburbSearch").autocomplete({
+            minLength: 3,
+            delay: 350,
+            source: function (request, response) {
+                $.ajax({
+                    url: "/LoadShedding/FindSuburbs",
+                    type: "GET",
+                    cache: true,
+                    dataType: "json",
+                    data: {
+                        searchText: request.term,
+                        maxResults: 300
+                    },
+                    success: function (data) {
+                        response($.map(data, function (item) {
+                            return {
+                                label: item.Name + ", " + item.MunicipalityName + ", " + item.ProvinceName,
+                                value: item.Name,
+                                id: item.Id,
+                                vname: item.ProvinceName,
+                                total: item.Total,
+                                MunicipalityName: item.MunicipalityName
+                            };
+                        }));
+                    }
+                })
+            },
+            select: function (event, ui) {
+
+                ClearDropdowns();
+                $('input#fromAutocomplete').val("1");
+
+                $('input#hProvinces').val(ui.item.vname);
+                $('input#hMunicipalities').val(ui.item.MunicipalityName);
+                $('input#hSuburbs').val(ui.item.value);
+
+                if (ui.item.total == "0") {
+
+
+                    $('#scheduleAreaInfo').attr('class', 'hidden');
+                    $('#scheduleInfo').attr('class', 'hidden');
+
+
+
+                } else {
+                    $('#scheduleAreaInfo').attr('class', 'shown');
+                    $('#scheduleInfo').attr('class', 'shown');
+                    GetScheduleAreaInfo(ui.item.id);
+                }
+
+
+
+                $("#total").val(ui.item.total);
+                $("#total").change();
+
+                GetSchedule(ui.item.id, CurrStage, ui.item.vname, ui.item.total);
+
+                HideDial();
+
+
+
+            }
+        });
+
+        $('#Provinces').change(function () {
+            $('input#fromAutocomplete').val("0");
+            var selectedProvince = $(this).val();
+            var suburbsDropdown = $("#Suburbsid");
+            suburbsDropdown.attr('class', 'hidden');
+
+            if (selectedProvince != null && selectedProvince != '') {
+                GetMunicipalities(selectedProvince);
+                $('#scheduleAreaInfo').attr('class', 'hidden');
+                $('#scheduleInfo').attr('class', 'hidden');
+
+            } else {
+                var municipalitiesDropdown = $('#Municipalities');
+                municipalitiesDropdown.attr('class', 'hidden');
+                municipalitiesDropdown.empty();
+                municipalitiesDropdown.append($('<option/>', {
+                    value: 0,
+                    text: "Select a Municipality"
+                }));
+
+            };
+        });
+
+        $('#Municipalities').change(function () {
+            $('input#fromAutocomplete').val("0");
+            var selectedMunic = $(this).val();
+            if (selectedMunic != null && selectedMunic != '' && selectedMunic != 0) {
+
+                $("#Suburbsid").show("slow");
+                var suburbsDropdown = $("#Suburbsid");
+                suburbsDropdown.attr('class', 'shown')
+
+                if (isIE(8)) {
+                    //jQuery(this).prev("Suburbs").attr("id", "Suburbs2");
+                    // jQuery(this).prev("Suburbs1").attr("id", "Suburbs");
+                    $("#Suburbs1").attr('class', 'shown')
+                    $("#Suburbs").attr('class', 'hidden')
+
+                    //   $('#Suburbs').select2().enable(false);
+
+                    GetSuburbsIe8(selectedMunic)
+                } else {
+                    $("#Suburbs1").attr('class', 'hidden')
+                    $("#Suburbs").attr('class', 'shown')
+                    GetSuburbs(selectedMunic)
+                }
+                //  GetSuburbs(selectedMunic);
+                $('#scheduleAreaInfo').attr('class', 'hidden');
+                $('#scheduleInfo').attr('class', 'hidden');
+            } else {
+                //  var suburbsDropdown = $('#Suburbsid');
+                //  suburbsDropdown.attr('class', 'hidden');
+
+            };
+
+
+        });
+
+        $("#Suburbs")
+            .on("change", function (e) {
+
+
+                var data = $("#Suburbs").select2("data");
+
+                $("#Suburbs").attr("data-placeholder", "Select a Surburb");
+
+
+                if (data == null) {
+                    return;
+                }
+
+
+                if (data != null && data != '') {
+
+                    $('input#fromAutocomplete').val("0");
+                    $('#scheduleAreaInfo').attr('class', 'hidden');
+                    $('#scheduleInfo').attr('class', 'hidden');
+                    $("input#suburbSearch").val('');
+
+                    $('input#hProvinces').val($("#Provinces option:selected").text());
+                    $('input#hMunicipalities').val($("#Municipalities option:selected").text());
+                    $('input#hSuburbs').val(data.text);
+                    var val1 = data.Tot;
+                    $("#total").val(val1);
+
+                    if (val1 == "0") {
+                        $('#scheduleAreaInfo').attr('class', 'hidden');
+                        $('#scheduleInfo').attr('class', 'hidden');
+                    } else {
+                        $('#scheduleAreaInfo').attr('class', 'shown');
+                        $('#scheduleInfo').attr('class', 'shown');
+                        GetScheduleAreaInfo(data.id);
+                    }
+                    GetSchedule(data.id, CurrStage, $("#Provinces option:selected").text(), val1);
+                    HideDial();
+
+
+                }
+
+            });
+
+        $('#Suburbs1').change(function () {
+            $('input#fromAutocomplete').val("0");
+            var selectedSuburb = $(this).val();
+            if (selectedSuburb != null && selectedSuburb != '') {
+                $('#scheduleAreaInfo').attr('class', 'hidden');
+                $('#scheduleInfo').attr('class', 'hidden');
+                $("input#suburbSearch").val('');
+
+                $('input#hProvinces').val($("#Provinces option:selected").text());
+                $('input#hMunicipalities').val($("#Municipalities option:selected").text());
+                $('input#hSuburbs').val($('option:selected', this).text());
+                var val1 = $('option:selected', this).attr('stitle');
+                $("#total").val(val1);
+
+                if (val1 == "0") {
+                    $('#scheduleAreaInfo').attr('class', 'hidden');
+                    $('#scheduleInfo').attr('class', 'hidden');
+                } else {
+                    $('#scheduleAreaInfo').attr('class', 'shown');
+                    $('#scheduleInfo').attr('class', 'shown');
+                    GetScheduleAreaInfo(selectedSuburb);
+                }
+                GetSchedule(selectedSuburb, CurrStage, $("#Provinces option:selected").text(), $('option:selected', this).attr('stitle'));
+                HideDial();
+            };
+        });
+
+
+
+
+        //$(document).ready(function () {
+        //    var URL = '/LoadShedding/GetStatus';
+        //    $.getJSON(URL, null, function (data) {
+        //        var statusId = data;
+        //        var lsstatus = $("#lsstatus");
+        //        var dialImage = $("#dialspan");
+        //        switch (statusId) {
+        //            case 1:
+        //                dialImage.attr('src', '/Content/Images/stage0.gif');
+        //                lsstatus.text("Load Shedding Status: No load shedding");
+        //                break;
+        //            case 2:
+        //                dialImage.attr('src', '/Content/Images/stage1.gif');
+        //                lsstatus.text("Load Shedding Status: Stage 1");
+        //                break;
+        //            case 3:
+        //                dialImage.attr('src', '/Content/Images/stage2.gif');
+        //                lsstatus.text("Load Shedding Status: Stage 2");
+        //                break;
+        //            case 4:
+        //                dialImage.attr('src', '/Content/Images/stage3.gif');
+        //                lsstatus.text("Load Shedding Status: Stage 3");
+
+        //                break;
+        //        }
+        //    });
+        //});
+
+        function UpdateImages(ima) {
+            var dialImage = $("#loadshedstageimg");
+            dialImage.attr('src', ima);
+            dialImage.prop('src', ima);
+            window.clearTimeout(timer);
+        }
+
+
+
+        $(document).ready(function () {
+            var URL = '/LoadShedding/GetStatus';
+            $.getJSON(URL, null, function (data) {
+                var statusId = data;
+                var lsstatus = $("#lsstatus")
+                var lsstatus1 = $("#lsstatus1")
+                var lsstatus2 = $("#lsstatus2") //Added on the 28th Jan 2021
+                var dialImage = $("#loadshedstageimg");
+                // statusId = 4;
+
+                jQuery.browser = {};
+                jQuery.browser.mozilla = false;
+                jQuery.browser.webkit = false;
+                jQuery.browser.opera = false;
+                jQuery.browser.safari = false;
+                jQuery.browser.chrome = false;
+                jQuery.browser.msie = false;
+                jQuery.browser.android = false;
+                jQuery.browser.blackberry = false;
+                jQuery.browser.ios = false;
+                jQuery.browser.operaMobile = false;
+                jQuery.browser.windowsMobile = false;
+                jQuery.browser.mobile = false;
+
+                var nAgt = navigator.userAgent;
+                jQuery.browser.ua = nAgt;
+
+                jQuery.browser.name = navigator.appName;
+                jQuery.browser.fullVersion = '' + parseFloat(navigator.appVersion);
+                jQuery.browser.majorVersion = parseInt(navigator.appVersion, 10);
+                var nameOffset, verOffset, ix;
+
+
+                $(document).ready(function () {
+                    $(function () {
+
+			//"Netscape" is the application name for both IE11, Chrome, Firefox, and Safari.
+                        if ($.cookie('page_visited') != 'yes'&& jQuery.browser.name !== "Netscape") {
+                            $("#dialog-message").dialog({
+                                modal: true,
+                                resizable: false,
+                                show: 'slide',
+                                buttons: {
+                                    Ok: function () {
+                                        $(this).dialog("close");
+                                    }
+                                }
+                            });
+                            $.cookie('page_visited', 'yes')
+
+                        }
+                    });
+                });
+
+                switch (statusId) {
+
+                    case 99:
+
+
+                        $('#loadshedstatus').removeClass('loadshedStatus').addClass('noloadshedStatus').fadeIn('slow');
+                        $("#loadshedstageimg").css('display', 'none')
+                        lsstatus1.attr('class', 'hidden');
+                        CurrStage = 99;
+                        lsstatus.text("Refreshing Data and System is not available.Please try later.");
+                        if (isIE(8)) {
+
+                        } else {
+
+                            $("#suburbSearch").prop('disabled', true);
+                            $("#Provinces").prop('disabled', true);
+                        }
+
+                        break;
+
+                    case 1:
+                        //  dialImage.attr('src', '');
+
+                        //  $.cookie('the_cookie', 'the_value');
+
+                        $('#loadshedstatus').removeClass('loadshedStatus').addClass('noloadshedStatus').fadeIn('slow');
+                        $("#loadshedstageimg").css('display', 'none')
+                        lsstatus1.attr('class', 'hidden');
+                        lsstatus2.attr('class', 'shown');//Added on the 28th Jan 2021
+                        CurrStage = 1;
+                        lsstatus.text("NOT LOAD SHEDDING."); //Updated on the 28th Jan 2021 by adding the full stop
+                        lsstatus2.URL(src = "https://play.google.com/store/apps/details?id=za.co.eskom.myeskom.customer");//Added on the 28th Jan 2021
+                        $("#suburbSearch").prop('disabled', false);
+                        $("#Provinces").prop('disabled', false);
+
+
+
+                        break;
+                    case 2:
+                        dialImage.attr('class', 'shown');
+                        dialImage.attr('src', '');
+                        dialImage.show();
+                        isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/)
+
+                        CurrStage = 1;
+                        var Opera = /opera/i.test(navigator.userAgent.toLowerCase());
+                        if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
+                            dialImage.attr('src', '/Images/icoLoadShedStage1.png');
+
+                            dialImage.prop('src', '/Images/icoLoadShedStage1.png');
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/icoLoadShedStage1.png');
+                            }, 7000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/icoLoadShedStage1.png");
+                            dialImage.attr("src", "/Images/icoLoadShedStage1.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/icoLoadShedStage1.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
+                            dialImage.attr('src', '/Images/icoLoadShedStage1.png');
+                            dialImage.prop('src', '/Images/icoLoadShedStage1.png');
+
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/icoLoadShedStage1.png');
+                            }, 3000);
+
+
+
+                        } else {
+
+                            dialImage.attr('src', '/Images/icoLoadShedStage1.png');
+                        }
+
+                        lsstatus.text("LOAD SHEDDING in STAGE 1");
+
+                        $('#loadshedstatus').removeClass('noloadshedStatus').addClass('loadshedStatus').fadeIn('slow');
+                        lsstatus1.attr('class', 'shown');
+                        lsstatus1.show();
+                        break;
+                    case 3:
+                        dialImage.attr('class', 'shown');
+                        dialImage.attr('src', '');
+                        dialImage.show();
+                        isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/)
+
+                        CurrStage = 2;
+                        var Opera = /opera/i.test(navigator.userAgent.toLowerCase());
+                        if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
+                            dialImage.attr('src', '/Images/icoLoadShedStage2.png');
+
+                            dialImage.prop('src', '/Images/icoLoadShedStage2.png');
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/icoLoadShedStage2.png');
+                            }, 7000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/icoLoadShedStage2.png");
+                            dialImage.attr("src", "/Images/icoLoadShedStage2.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/icoLoadShedStage2.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
+                            dialImage.attr('src', '/Images/icoLoadShedStage2.png');
+                            dialImage.prop('src', '/Images/icoLoadShedStage2.png');
+
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/icoLoadShedStage2.png');
+                            }, 3000);
+
+
+
+                        } else {
+
+                            dialImage.attr('src', '/Images/icoLoadShedStage2.png');
+                        }
+
+                        lsstatus.text("LOAD SHEDDING in STAGE 2");
+                        $("#loadshedstageimg").css('display', 'shown')
+                        $('#loadshedstatus').removeClass('noloadshedStatus').addClass('loadshedStatus').fadeIn('slow');
+                        lsstatus1.attr('class', 'shown');;
+                        dialImage.attr('class', 'shown')
+                        break;
+                    case 4:
+                        dialImage.attr('class', 'shown');
+                        dialImage.attr('src', '');
+                        dialImage.show();
+                        isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/)
+                        CurrStage = 3;
+
+                        var Opera = /opera/i.test(navigator.userAgent.toLowerCase());
+                        if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
+                            dialImage.attr('src', '/Images/icoLoadShedStage3.png');
+
+                            dialImage.prop('src', '/Images/icoLoadShedStage3.png');
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/icoLoadShedStage3.png');
+                            }, 7000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/icoLoadShedStage3.png");
+                            dialImage.attr("src", "/Images/icoLoadShedStage3.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/icoLoadShedStage3.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
+                            dialImage.attr('src', '/Images/icoLoadShedStage3.png');
+                            dialImage.prop('src', '/Images/icoLoadShedStage3.png');
+
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/icoLoadShedStage3.png');
+                            }, 3000);
+
+
+
+                        } else {
+
+                            dialImage.attr('src', '/Images/icoLoadShedStage3.png');
+                        }
+                        //   dialImage.attr('src', '/Images/icoLoadShedStage3.png');
+                        lsstatus.text("LOAD SHEDDING in STAGE 3");
+                        $("#loadshedstageimg").css('display', 'shown')
+                        $('#loadshedstatus').removeClass('noloadshedStatus').addClass('loadshedStatus').fadeIn('slow');
+                        lsstatus1.attr('class', 'shown');;
+                        dialImage.attr('class', 'shown')
+                        break;
+                    case 5:
+                        dialImage.attr('class', 'shown');
+                        dialImage.attr('src', '');
+                        dialImage.show();
+                        isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/)
+                        CurrStage = 4;
+
+                        var Opera = /opera/i.test(navigator.userAgent.toLowerCase());
+                        if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
+                            dialImage.attr('src', '/Images/LoadShedStage4.png');
+
+                            dialImage.prop('src', '/Images/LoadShedStage4.png');
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage4.png');
+                            }, 7000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/LoadShedStage4.png");
+                            dialImage.attr("src", "/Images/LoadShedStage4.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage4.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera Mini")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/LoadShedStage4.png");
+                            dialImage.attr("src", "/Images/LoadShedStage4.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage4.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
+                            dialImage.attr('src', '/Images/LoadShedStage4.png');
+                            dialImage.prop('src', '/Images/LoadShedStage4.png');
+
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage4.png');
+                            }, 3000);
+
+
+
+                        } else {
+
+                            dialImage.attr('src', '/Images/LoadShedStage4.png');
+                        }
+                        //   dialImage.attr('src', '/Images/icoLoadShedStage3.png');
+                        lsstatus.text("LOAD SHEDDING in STAGE 4");
+                        $("#loadshedstageimg").css('display', 'shown')
+                        $('#loadshedstatus').removeClass('noloadshedStatus').addClass('loadshedStatus').fadeIn('slow');
+                        lsstatus1.attr('class', 'shown');
+                        dialImage.attr('class', 'shown');
+                        $("#suburbSearch").prop('disabled', false);
+                        $("#Provinces").prop('disabled', false);
+                        break;
+                    case 6:
+                        dialImage.attr('class', 'shown');
+                        dialImage.attr('src', '');
+                        dialImage.show();
+                        isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/)
+                        CurrStage = 5;
+
+                        var Opera = /opera/i.test(navigator.userAgent.toLowerCase());
+                        if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
+                            dialImage.attr('src', '/Images/LoadShedStage5.png');
+
+                            dialImage.prop('src', '/Images/LoadShedStage5.png');
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage5.png');
+                            }, 7000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/LoadShedStage5.png");
+                            dialImage.attr("src", "/Images/LoadShedStage5.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage5.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera Mini")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/LoadShedStage5.png");
+                            dialImage.attr("src", "/Images/LoadShedStage5.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage5.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
+                            dialImage.attr('src', '/Images/LoadShedStage5.png');
+                            dialImage.prop('src', '/Images/LoadShedStage5.png');
+
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage5.png');
+                            }, 3000);
+
+
+
+                        } else {
+
+                            dialImage.attr('src', '/Images/LoadShedStage5.png');
+                        }
+                        //   dialImage.attr('src', '/Images/icoLoadShedStage3.png');
+                        lsstatus.text("LOAD SHEDDING in STAGE 5");
+                        $("#loadshedstageimg").css('display', 'shown')
+                        $('#loadshedstatus').removeClass('noloadshedStatus').addClass('loadshedStatus').fadeIn('slow');
+                        lsstatus1.attr('class', 'shown');
+                        dialImage.attr('class', 'shown');
+                        $("#suburbSearch").prop('disabled', false);
+                        $("#Provinces").prop('disabled', false);
+                        break;
+                    case 7:
+                        dialImage.attr('class', 'shown');
+                        dialImage.attr('src', '');
+                        dialImage.show();
+                        isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/)
+                        CurrStage = 6;
+
+                        var Opera = /opera/i.test(navigator.userAgent.toLowerCase());
+                        if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
+                            dialImage.attr('src', '/Images/LoadShedStage6.png');
+
+                            dialImage.prop('src', '/Images/LoadShedStage6.png');
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage6.png');
+                            }, 7000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/LoadShedStage6.png");
+                            dialImage.attr("src", "/Images/LoadShedStage6.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage6.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera Mini")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/LoadShedStage6.png");
+                            dialImage.attr("src", "/Images/LoadShedStage6.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage6.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
+                            dialImage.attr('src', '/Images/LoadShedStage6.png');
+                            dialImage.prop('src', '/Images/LoadShedStage6.png');
+
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage6.png');
+                            }, 3000);
+
+
+
+                        } else {
+
+                            dialImage.attr('src', '/Images/LoadShedStage6.png');
+                        }
+                        //   dialImage.attr('src', '/Images/icoLoadShedStage3.png');
+                        lsstatus.text("LOAD SHEDDING in STAGE 6");
+                        $("#loadshedstageimg").css('display', 'shown')
+                        $('#loadshedstatus').removeClass('noloadshedStatus').addClass('loadshedStatus').fadeIn('slow');
+                        lsstatus1.attr('class', 'shown');
+                        dialImage.attr('class', 'shown');
+                        $("#suburbSearch").prop('disabled', false);
+                        $("#Provinces").prop('disabled', false);
+                        break;
+                    case 8:
+                        dialImage.attr('class', 'shown');
+                        dialImage.attr('src', '');
+                        dialImage.show();
+                        isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/)
+                        CurrStage = 7;
+
+                        var Opera = /opera/i.test(navigator.userAgent.toLowerCase());
+                        if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
+                            dialImage.attr('src', '/Images/LoadShedStage7.png');
+
+                            dialImage.prop('src', '/Images/LoadShedStage7.png');
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage7.png');
+                            }, 7000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/LoadShedStage7.png");
+                            dialImage.attr("src", "/Images/LoadShedStage7.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage7.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera Mini")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/LoadShedStage7.png");
+                            dialImage.attr("src", "/Images/LoadShedStage7.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage7.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
+                            dialImage.attr('src', '/Images/LoadShedStage7.png');
+                            dialImage.prop('src', '/Images/LoadShedStage7.png');
+
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage7.png');
+                            }, 3000);
+
+
+
+                        } else {
+
+                            dialImage.attr('src', '/Images/LoadShedStage7.png');
+                        }
+                        //   dialImage.attr('src', '/Images/icoLoadShedStage3.png');
+                        lsstatus.text("LOAD SHEDDING in STAGE 7");
+                        $("#loadshedstageimg").css('display', 'shown')
+                        $('#loadshedstatus').removeClass('noloadshedStatus').addClass('loadshedStatus').fadeIn('slow');
+                        lsstatus1.attr('class', 'shown');
+                        dialImage.attr('class', 'shown');
+                        $("#suburbSearch").prop('disabled', false);
+                        $("#Provinces").prop('disabled', false);
+                        break;
+                    case 9:
+                        dialImage.attr('class', 'shown');
+                        dialImage.attr('src', '');
+                        dialImage.show();
+                        isSafari = !!navigator.userAgent.match(/Version\/[\d\.]+.*Safari/)
+                        CurrStage = 8;
+
+                        var Opera = /opera/i.test(navigator.userAgent.toLowerCase());
+                        if ((verOffset = nAgt.indexOf("Chrome")) != -1) {
+                            dialImage.attr('src', '/Images/LoadShedStage8.png');
+
+                            dialImage.prop('src', '/Images/LoadShedStage8.png');
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage8.png');
+                            }, 7000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/LoadShedStage8.png");
+                            dialImage.attr("src", "/Images/LoadShedStage8.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage8.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Opera Mini")) != -1) {
+
+
+                            dialImage.attr("src", "/Images/LoadShedStage8.png");
+                            dialImage.attr("src", "/Images/LoadShedStage8.png" + Math.floor(Math.random() * 1000));
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage8.png');
+                            }, 3000);
+
+
+
+                        } else if ((verOffset = nAgt.indexOf("Safari")) != -1) {
+                            dialImage.attr('src', '/Images/LoadShedStage8.png');
+                            dialImage.prop('src', '/Images/LoadShedStage8.png');
+
+                            timer = window.setTimeout(function () {
+                                UpdateImages('/Images/LoadShedStage8.png');
+                            }, 3000);
+
+
+
+                        } else {
+
+                            dialImage.attr('src', '/Images/LoadShedStage8.png');
+                        }
+                        //   dialImage.attr('src', '/Images/icoLoadShedStage3.png');
+                        lsstatus.text("LOAD SHEDDING in STAGE 8");
+                        $("#loadshedstageimg").css('display', 'shown')
+                        $('#loadshedstatus').removeClass('noloadshedStatus').addClass('loadshedStatus').fadeIn('slow');
+                        lsstatus1.attr('class', 'shown');
+                        dialImage.attr('class', 'shown');
+                        $("#suburbSearch").prop('disabled', false);
+                        $("#Provinces").prop('disabled', false);
+                        break;
+                }
+            });
+        });
+
+
+
+        function GetMunicipalities(provinceId) {
+            var URL = '/LoadShedding/GetMunicipalities/';
+
+            $.getJSON(URL, {
+                Id: provinceId
+            }, function (data) {
+                var municipalitySelect = $("#Municipalities");
+
+
+                municipalitySelect.empty();
+                municipalitySelect.attr('class', 'shown');
+                municipalitySelect.addClass("advsearchselect");
+
+                municipalitySelect.append($('<option/>', {
+                    value: 0,
+                    text: "Select a Municipality"
+                }));
+                $.each(data, function (index, item) {
+                    municipalitySelect.append($('<option/>', {
+                        value: item.Value,
+                        text: item.Text
+
+                    }));
+                });
+
+                var fromAuto = $('input#fromAutocomplete').val();
+                if (fromAuto = "1" && fromAuto != "0") {
+                    var selectedMunicipalityId = $('input#municipalityId').val();
+                    if (selectedMunicipalityId != null && selectedMunicipalityId != '' && selectedMunicipalityId != 0) {
+                        $("#Municipalities").val(selectedMunicipalityId);
+                        if (isIE(8)) {
+
+                            GetSuburbsIe8(selectedMunicipalityId)
+                        } else {
+
+                            GetSuburbs(selectedMunicipalityId)
+                        }
+                    }
+                }
+            });
+
+        };
+
+        function GetSuburbsIe8(municId) {
+            var URL = '/LoadShedding/GetSuburbs/';
+
+            $.getJSON(URL, {
+                Id: municId
+            }, function (data) {
+                var suburbSelect = $("#Suburbs1");
+                suburbSelect.empty();
+                suburbSelect.attr('class', 'shown');
+                suburbSelect.addClass("advsearchselect");
+
+                suburbSelect.append($('<option/>', {
+                    value: 0,
+                    text: "Select a Suburb"
+                }));
+
+                for (var i = 0; i < data.length; i++) {
+                    suburbSelect.append($('<option/>', {
+                        value: data[i].Value,
+                        text: data[i].Text,
+                        stitle: data[i].Total
+                    }));
+                }
+
+
+
+                var selectedSuburbId = $("input#suburbId").val();
+                if (selectedSuburbId != null && selectedSuburbId != '' && selectedSuburbId != 0) {
+                    $("#Suburbs1").val(selectedSuburbId);
+                }
+
+            });
+        };
+
+
+
+        function GetSuburbs(municId) {
+            var URL = '/LoadShedding/GetSurburbData/';
+
+
+
+            $("Suburbsid").show("slow");
+
+
+
+
+
+            var pageSize = 100;
+            var preload_data = [
+                {
+                    id: '1',
+                    text: 'Select a Surburb',
+                    Tot: 0
+                }];
+            $('#Suburbs').select2('data', preload_data)
+            $("#Suburbs").select2({
+
+
+                placeholder: 'Select a Surburb',
+                minimumInputLength: 0,
+                triggerChange: true,
+
+                //Does the user have to enter any data before sending the ajax request
+
+
+                allowClear: false,
+                ajax: {
+                    //How long the user has to pause their typing before sending the next request
+                    quietMillis: 150,
+                    //The url of the json service
+                    url: URL,
+                    dataType: 'jsonp',
+
+
+
+                    //Our search term and what page we are on
+                    data: function (term, page) {
+
+                        return {
+                            pageSize: pageSize,
+                            pageNum: page,
+                            searchTerm: term,
+                            id: municId,
+                        };
+                    },
+                    results: function (data, page) {
+                        //Used to determine whether or not there are more results available,
+                        //and if requests for more data should be sent in the infinite scrolling                    
+                        var more = (page * pageSize) < data.Total;
+                        return {
+                            results: data.Results,
+                            more: more
+                        };
+                    }
+                }
+
+
+
+
+
+
+
+            })
+
+
+            // $('#Suburbs').select2({ placeholder: 'Select a Suburb' });
+
+
+
+        };
+
+        function isIE(version, comparison) {
+            var $div = $('<div style="display:none;"/>').appendTo($('body'));
+            $div.html('<!--[if ' + (comparison || '') + ' IE ' + (version || '') + ']><a>&nbsp;</a><![endif]-->');
+            var ieTest = $div.find('a').length;
+            $div.remove();
+            return ieTest;
+        }
+
+        function GetSchedule(suburbId, stageId, ProvinceID, Total) {
+            var URL = '/LoadShedding/GetScheduleM/' + suburbId + '/' + stageId + '/' + ProvinceID + '/' + Total;
+            $.get(URL, null, function (data) {
+
+                $('#scheduleInfoMessage').attr('class', 'shown');
+                //$('#Provinces').val("0");
+                //$('#Municipalities').attr('class', 'hidden');
+
+
+                if (Total == "0") {
+                    $('#scheduleAreaInfo').attr('class', 'hidden');
+                    $('#scheduleInfo').attr('class', 'hidden');
+                    $("#Suburbsid").show("slow");
+                    //  var suburbsDropdown = $("#Suburbsid");
+                    //  suburbsDropdown.attr('class', 'hidden')
+                    // $("#Suburbsid").hide();
+                    //  ClearDropdowns();
+
+                } else {
+                    //  $('#Suburbsid').toggle();
+                    //  var Municipalities = $("#Municipalities");
+                    //Municipalities.attr('class', 'hidden');
+
+                    //var Municipalities = $("#Municipalities");
+                    //Municipalities.attr('class', 'hidden');
+
+                    //  $('#Suburbsid').attr('class', 'hidden');
+                    // $("#Suburbsid").show("slow");
+                    //  $("#Suburbsid").hide();
+                    var scheduleAreaInfo = $("#scheduleAreaInfo");
+                    scheduleAreaInfo.attr('class', 'hidden');
+
+                    var scheduleInfo = $("#scheduleInfo");
+                    scheduleInfo.attr('class', 'hidden');
+
+                    $('#scheduleAreaInfo').attr('class', 'shown');
+                    $('#scheduleInfo').attr('class', 'shown');
+
+                    $('input:radio[name="stage"][value="' + stageId + '"]').attr('checked', true);
+
+                    // $("#scheduleAreaInfo").animate({ scrollTop: $("#scheduleInfo").offset().top+350 });
+
+                    if ($("html").hasClass("ie9") | $("html").hasClass("ie10") | $("html").hasClass("ie11")) {
+                        document.getElementById("scheduleInfo").style.top = $(document).scrollTop() * 5 + "px";
+
+                    } else {
+                        $('body, html').animate({
+                            scrollTop: $("#scheduleInfo").offset().top
+                        }, 'slow');
+                    }
+                }
+
+                $('#showprint').attr('class', 'hidden');
+                $('#scheduleInfo').html(data);
+                $('#printButton').click(function () {
+
+
+                    var printScheduleWindow = window.open('', 'Schedule_Information', 'scrollbars=yes,width=300,height=300,resizable=yes');
+                    printScheduleWindow.document.write('<html><head><title>Schedule Information</title>');
+                    printScheduleWindow.document.write('<link href="/Content/loadshedding.eskom.co.za.home.css" rel="stylesheet"/>');
+                    printScheduleWindow.document.write('<link href="/Content/ld.css" rel="stylesheet"/>');
+                    printScheduleWindow.document.write('</head><body >');
+                    printScheduleWindow.document.write("<table style='width: 100%;' border='0'>");
+                    printScheduleWindow.document.write("<tr>");
+
+
+                    printScheduleWindow.document.write("<tr>");
+                    printScheduleWindow.document.write("<td style='text-align:left'><strong>Eskom Load Shedding Schedules</strong> </td>");
+                    printScheduleWindow.document.write("</tr>");
+                    printScheduleWindow.document.write("<tr>");
+                    printScheduleWindow.document.write("<td ><br> </td>");
+                    printScheduleWindow.document.write("</tr>")
+                    printScheduleWindow.document.write("<tr>");
+                    printScheduleWindow.document.write("<td style='text-align:left'><strong>Stage[" + stageId + "] Schedule for  </strong></td>");
+                    printScheduleWindow.document.write("</tr>");
+                    printScheduleWindow.document.write("<tr>");
+                    printScheduleWindow.document.write("<td style='text-align:left'><strong>" + $("input#province").val() + ", " + $("input#municipality").val() + ",  " + $("input#suburbName").val() + " </strong></td>");
+                    printScheduleWindow.document.write("</tr>");
+                    printScheduleWindow.document.write("<tr>");
+                    printScheduleWindow.document.write("<td ><br> </td>");
+                    printScheduleWindow.document.write("</tr>")
+                    printScheduleWindow.document.write("<tr>");
+                    printScheduleWindow.document.write("<td > <input type='button' value='Print' onclick='window.print();window.close();'> </td>");
+                    printScheduleWindow.document.write("</tr>")
+                    printScheduleWindow.document.write("<tr>")
+
+                    printScheduleWindow.document.write("<td style='width: 100%'>");
+                    var printScheduleHTML = $('#scheduleInfo').html();
+                    printScheduleWindow.document.write(printScheduleHTML);
+                    printScheduleWindow.document.write("</td>");
+                    printScheduleWindow.document.write("</tr>");
+                    printScheduleWindow.document.write("<tr>");
+                    printScheduleWindow.document.write("<td style='text-align:left;width: 100%'><strong>Please Note </strong><br>")
+                    printScheduleWindow.document.write("<li>Load shedding will only be implemented as a last resort if supply cannot meet demand and the power system <br> is placed at risk. </li>")
+                    printScheduleWindow.document.write("<li>Eskom will communicate openly by announcing a system emergency should it become necessary to implement <br> load shedding. </li>")
+                    printScheduleWindow.document.write("<li> If no load shedding announcement has been made, and loss of power occurs, please report this to the Eskom’s <br> customer contact centre at 086 003 7566. </li>")
+                    printScheduleWindow.document.write("</td>");
+
+                    printScheduleWindow.document.write("</tr>")
+
+                    printScheduleWindow.document.write("<tr>");
+                    printScheduleWindow.document.write("<td style='text-align:left;width: 100%'><strong>How does the schedule work? </strong><br>")
+                    printScheduleWindow.document.write("<li> Load shedding will take place for 2 hours at a time in most instances, with the exception of the Johannesburg <br> Area that will be load shed less frequently but for 4 hours (in alignment with the City Power schedules). </li>")
+                    printScheduleWindow.document.write("<li>There are three stages of load shedding, designed to cater for only the level of demand reduction actually <br>required (Stage 3 being the highest reduction requirement).</li>")
+                    printScheduleWindow.document.write("<li>Eskom will communicate at the time which Stage of load shedding is being used. </li>")
+                    printScheduleWindow.document.write("</td>");
+
+                    printScheduleWindow.document.write("</tr>")
+
+                    printScheduleWindow.document.write("<tr>");
+                    printScheduleWindow.document.write("<td style='text-align:left;width: 100%'><strong>Load shedding updates </strong><br>")
+                    printScheduleWindow.document.write("<li> While we have taken care in developing the schedules, updates may be made as customers interact with us,<br> and to optimise the schedules for changing conditions. We recommend that you view Eskom’s website regularly <br> to download any updates on <a href='http://loadshedding.eskom.co.za' target='_blank'>http://loadshedding.eskom.co.za</a></li>")
+
+                    printScheduleWindow.document.write("</td>");
+
+                    printScheduleWindow.document.write("</tr>")
+
+
+                    printScheduleWindow.document.write("<tr>");
+                    printScheduleWindow.document.write("<td style='text-align:left;width: 100%'><strong>How will we communicate? </strong><br>")
+
+                    printScheduleWindow.document.write("<li> Updates on the power system status will be shared in the media. </li>")
+                    printScheduleWindow.document.write("<li> Watch out for the Power Alerts on SABC and DSTV and Eskom Power Bulletin broadcasts after the SABC news in the evenings. </li>")
+                    printScheduleWindow.document.write("<li>We welcome suggestions and comments. Please engage with us on  <a href='mailto:loadshedding@eskom.co.za?Subject' target='_blank'>loadshedding@eskom.co.za </a> or <br> call Eskom’s customer call centre on 086 003 7566</li>")
+
+                    printScheduleWindow.document.write("</td>");
+                    printScheduleWindow.document.write("</tr>")
+
+                    printScheduleWindow.document.write("</table>")
+                    printScheduleWindow.document.write('</body></html>');
+                    printScheduleWindow.document.close();
+
+                    $('#showprint').attr('class', 'shown');
+
+                });
+
+            });
+
+        }
+
+        function GetScheduleAreaInfo(suburbId) {
+            var URL = '/LoadShedding/GetScheduleAreaInfo/';
+            $.get(URL, {
+                Id: suburbId
+            }, function (data) {
+                $('#scheduleAreaInfo').html(data);
+                var fromAuto = $('input#fromAutocomplete').val();
+                if (fromAuto = "1" && fromAuto != "0") {
+                    UpdateDropdowns();
+                }
+                $('input[name=stage]:radio').change(function () {
+                    var selectedStage = $(this).val();
+
+                    var selectedProvinceId = $("input#provinceId").val();
+                    var selectedSuburb = $("input#suburbId").val();
+
+                    if (selectedStage != null && selectedStage != '' && selectedSuburb != null && selectedSuburb != '') {
+                        GetSchedule(selectedSuburb, selectedStage, selectedProvinceId, $("#total").val());
+                    }
+                });
+            });
+        }
+
+        function UpdateDropdowns() {
+            var selectedProvinceId = $("input#provinceId").val();
+            var selectedMunicipalityId = $('input#municipalityId').val();
+            var selectedSuburbId = $("input#suburbId").val();
+            $('select#Provinces').val(selectedProvinceId);
+            GetMunicipalities(selectedProvinceId);
+
+
+        }
+
+        function ClearDropdowns() {
+
+            $('#Provinces').val("0");
+            $('#Municipalities').val('0');
+
+
+        }
+
+        function HideDial() {
+            //$('#dialInfo').attr('class', 'hidden');
+            //$('#noticeInfo').attr('class', 'hidden');
+            //$('#noticeMessage').attr('class', 'hidden');
+            //$('#stageInfo').attr('class', 'shown');
+            //$('#munic').attr('class', 'shown');
+
+        }
+
+
+
+
+
+
+
+        //function showFeeder(feederData) {
+
+        //    var suburb = $("input#suburbName").val();
+        //    var feederDataClean = $.parseJSON(feederData);
+        //    var feederWindow = window.open('', 'Feeder_Info', 'height=400,width=600');
+        //    feederWindow.document.write('<html><head><title>Feeder Information</title>');
+        //    feederWindow.document.write('<link href="/Content/ld.css" rel="stylesheet"/>');
+        //    feederWindow.document.write('</head><body>');
+        //    feederWindow.document.write('<table class="stable"><tr><th>Suburb</th><th>Start Time</th><th>End Time</th><th>Feeder</th></tr>');
+        //    $.each(feederDataClean, function (index, item) {
+        //        var time = item.Time;
+        //        var splitTime = time.split(' - ');
+        //        var startTime = splitTime[0];
+        //        var endTime = splitTime[1];
+        //        feederWindow.document.write('<tr><td class="std">' + suburb + '</td><td class="std">' + startTime + '</td><td class="std">' + endTime + '</td><td class="std">' + item.Feeder + '</td></tr>');
+        //    });
+        //    feederWindow.document.write('</table>');
+        //    feederWindow.document.write('<p class="blue">Note :- Page is best printed in landscape format</p>');
+        //    feederWindow.document.write('<p align="right"><input type="button" value="Print" onclick="window.print();window.close();"> </p>');
+        //    feederWindow.document.close();
+        //}
+
+
+
+    });
+})();
+
+
+
+function showFeeder(feederData) {
+
+    var suburb = $('input#hSuburbs').val();
+    var feederDataClean = $.parseJSON(feederData);
+    var feederWindow = window.open('', 'Feeder_Info', 'height=400,width=600,scrollbars=yes');
+    feederWindow.document.write('<html><head><title>Feeder Information</title>');
+    feederWindow.document.write('<link href="/Content/ld.css" rel="stylesheet"/>');
+    feederWindow.document.write('</head><body>');
+    feederWindow.document.write('<table class="stable"><tr><th>Suburb</th><th>Start Time</th><th>End Time</th><th>Feeder</th></tr>');
+    $.each(feederDataClean, function (index, item) {
+        var time = item.Time;
+        var splitTime = time.split(' - ');
+        var startTime = splitTime[0];
+        var endTime = splitTime[1];
+        feederWindow.document.write('<tr><td class="std">' + suburb + '</td><td class="std">' + startTime + '</td><td class="std">' + endTime + '</td><td class="std">' + item.Feeder + '</td></tr>');
+    });
+    feederWindow.document.write('</table>');
+    feederWindow.document.write('<p class="blue">Note :- Page is best printed in landscape format</p>');
+    feederWindow.document.write('<p align="right"><input type="button" value="Print" onclick="window.print();window.close();"> </p>');
+    feederWindow.document.close();
+}
+
+function onFocus(el) {
+    if (el.value == el.defaultValue) {
+        el.value = '';
+    }
+}
+
+function onBlur(el) {
+    if (el.value == '') {
+        el.value = el.defaultValue;
+    }
+
+}
