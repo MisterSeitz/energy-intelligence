@@ -1,0 +1,62 @@
+{
+    "actorSpecification": 1,
+    "fields": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+            "stage": {
+                "type": "integer",
+                "title": "Stage",
+                "description": "Eskom Loadshedding Stage (0-8)"
+            },
+            "status": {
+                "type": "string",
+                "title": "Status Text",
+                "description": "Status description (e.g. 'Suspended', 'Active')"
+            },
+            "raw_response": {
+                "type": "object",
+                "title": "Raw Response",
+                "description": "Raw data from source",
+                "properties": {
+                    "text": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "required": [
+            "stage",
+            "status"
+        ]
+    },
+    "views": {
+        "overview": {
+            "title": "Live Status",
+            "transformation": {
+                "fields": [
+                    "stage",
+                    "status",
+                    "raw_response"
+                ]
+            },
+            "display": {
+                "component": "table",
+                "properties": {
+                    "stage": {
+                        "label": "⚡ Stage",
+                        "format": "number"
+                    },
+                    "status": {
+                        "label": "Status",
+                        "format": "text"
+                    },
+                    "raw_response": {
+                        "label": "Raw Data",
+                        "format": "object"
+                    }
+                }
+            }
+        }
+    }
+}

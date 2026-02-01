@@ -1,0 +1,264 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap");
+body {
+  margin: 0;
+  box-sizing: border-box;
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  box-sizing: border-box;
+}
+
+.AlfredHelm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #D9D9D9;
+  height: 100%;
+}
+.AlfredHelm-instruction {
+  display: none;
+}
+@media screen and (min-width: 768px) {
+  .AlfredHelm-instruction {
+    display: inline;
+    font-weight: 400;
+  }
+}
+.AlfredHelm-chatcontainer {
+  flex-grow: 1;
+  height: calc(100% - 70px);
+  max-width: 100%;
+}
+@media screen and (min-width: 768px) {
+  .AlfredHelm-chatcontainer {
+    height: calc(100% - 86px);
+  }
+}
+.AlfredHelm-greeting {
+  font-size: 18px;
+  padding: 0 0px 0 10px;
+  background-color: #968969;
+  color: #FFF;
+  line-height: 1;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+@media screen and (min-width: 768px) {
+  .AlfredHelm-greeting {
+    padding: 0 0px 0 40px;
+  }
+}
+.AlfredHelm-logo {
+  height: 40px;
+}
+.AlfredHelm-privacy-notice {
+  padding: 10px;
+  width: 100%;
+  background-color: #D9D9D9;
+}
+.AlfredHelm-privacy-notice a {
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+  color: #525252;
+  border: none;
+  line-height: 1;
+}
+.AlfredHelm-privacy-notice a:hover {
+  color: #003896;
+}
+@media screen and (min-width: 768px) {
+  .AlfredHelm-privacy-notice {
+    padding: 20px 40px;
+  }
+}
+@media screen and (min-width: 1140px) {
+  .AlfredHelm {
+    background-color: #525252;
+  }
+  .AlfredHelm-privacy-notice, .AlfredHelm-greeting, .AlfredHelm-chatContainer {
+    width: 1140px;
+  }
+}
+
+.ChatContainer {
+  background-color: #D9D9D9;
+  height: 100% ul;
+  height-list-style: none;
+}
+.ChatContainer a {
+  border: none;
+}
+.ChatContainer-content {
+  height: calc(100% - 72px);
+}
+@media screen and (min-width: 768px) {
+  .ChatContainer-content {
+    height: calc(100% - 72px);
+    padding: 0 40px 0 40px;
+    flex-grow: 0;
+  }
+}
+.ChatContainer-input {
+  height: 72px;
+}
+.ChatContainer .Text {
+  font-family: "Roboto", sans-serif;
+  color: #525252;
+  border-radius: 12px 12px 0px 0px;
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+.ChatContainer .Text a {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ChatContainer .Text pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  margin: 0;
+}
+.ChatContainer .Text > div {
+  margin-bottom: 0;
+}
+.ChatContainer .Text:only-child {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+.ChatContainer .Text:last-of-type {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+.ChatContainer .Text:first-of-type {
+  border-top-left-radius: 12px;
+}
+.ChatContainer .Text.is-local {
+  background-color: #003896;
+  color: white;
+  font-weight: 800;
+}
+.ChatContainer .Text.is-local:only-child {
+  border-bottom-right-radius: 0px;
+  border-top-right-radius: 12px;
+}
+.ChatContainer .Text.is-local:first-child {
+  border-bottom-right-radius: 0px;
+  border-bottom-left-radius: 12px;
+}
+.ChatContainer .Text.is-local :last-child {
+  border-top-right-radius: 0px;
+}
+.ChatContainer .MessageContainer {
+  margin-top: 0;
+}
+.ChatContainer .MessageContainer .Image {
+  height: auto;
+}
+.ChatContainer .MessageContainer .Image-image {
+  height: auto;
+  width: auto;
+  max-width: 80vw;
+}
+.ChatContainer .MessageContainer ol {
+  display: grid;
+}
+.ChatContainer .MessagesList {
+  padding-left: 0;
+}
+.ChatContainer .MessagesList-item {
+  display: flex;
+  padding-left: 45px;
+  position: relative;
+}
+.ChatContainer .MessagesList .is-local {
+  display: flex;
+  flex-direction: row-reverse;
+}
+.ChatContainer .MessagesList .is-local a {
+  color: #fff;
+}
+.ChatContainer .MessagesList-messageItem {
+  max-width: 100%;
+  border-radius: 0;
+  margin: 0;
+}
+@media screen and (min-width: 768px) {
+  .ChatContainer .MessagesList {
+    margin-top: 40px;
+  }
+}
+.ChatContainer .AvatarStatus {
+  position: absolute;
+  left: 0;
+}
+.ChatContainer .ButtonContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-left: 0;
+  margin-top: 0;
+}
+.ChatContainer .Button {
+  font-family: "Roboto", sans-serif;
+  margin-bottom: 10px;
+  font-weight: 800;
+  color: #003896;
+  border-radius: 0;
+  border: 0;
+  font-size: 20px;
+  background-color: #fff;
+  text-align: left;
+  padding: 10px 20px;
+  margin-left: 0;
+}
+.ChatContainer .Text {
+  font-family: "Roboto", sans-serif;
+}
+.ChatContainer .ChatContainer .Text:last-of-type {
+  background-color: transparent;
+}
+.ChatContainer .Text {
+  width: 100%;
+  width: -webkit-fill-available;
+}
+.ChatContainer .Text a {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.ChatContainer .Input {
+  background-color: #D9D9D9;
+  padding: 0 0 14px 0;
+}
+.ChatContainer .Input-input {
+  background-color: #fff;
+  font-size: 16px;
+  color: #1E1E1E;
+  font-weight: 500;
+}
+.ChatContainer .Input-send {
+  background-color: #968969;
+  font-size: 16px;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0 10px 10px 0;
+  text-transform: uppercase;
+}
+.ChatContainer .Input-send:hover {
+  background-color: #786e54;
+}
+
+/*# sourceMappingURL=style.css.map */

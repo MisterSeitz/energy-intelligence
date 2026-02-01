@@ -1,0 +1,106 @@
+
+<!-- saved from url=(0036)https://alfred.eskom.co.za/chatroom/ -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+    <script crossorigin="" src="./Alfred, Eskom&#39;s chatbot_files/react.production.min.js.download"></script>
+    <script crossorigin="" src="./Alfred, Eskom&#39;s chatbot_files/react-dom.production.min.js.download"></script>
+
+    <!--
+    <script crossorigin src="https://unpkg.com/react/umd/react.production.min.js" ></script>
+    <script crossorigin src="https://unpkg.com/react-dom/umd/react-dom.production.min.js" ></script>
+    -->
+
+    <script src="./Alfred, Eskom&#39;s chatbot_files/react-web-chat.min.js.download"></script>
+    <link rel="stylesheet" href="./Alfred, Eskom&#39;s chatbot_files/main.css">
+    <link rel="stylesheet" href="./Alfred, Eskom&#39;s chatbot_files/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alfred, Eskom's chatbot</title>
+  </head>
+  <body>
+    <style type="text/css"></style>
+    <div class="AlfredHelm">
+      <div class="AlfredHelm-privacy-notice">
+        <a target="blank" href="https://www.eskom.co.za/wp-content/uploads/2023/01/Eskom_External_Privacy_Statement_25012023.pdf">Privacy Notice</a>
+      </div>
+      <div class="AlfredHelm-greeting">
+        <span>Hello, I'm Alfred! <span class="AlfredHelm-instruction">I can help you with all things electricity.</span></span>
+        <img class="AlfredHelm-logo" src="./Alfred, Eskom&#39;s chatbot_files/Eskom_Logo_RHS.png">
+      </div>
+      <div class="AlfredHelm-chatcontainer" id="my-chat-element"><div class="ChatContainer fade-appear-done fade-enter-done"><div class="ChatContainer-content"><ul class="MessagesList"><li class="MessagesList-item"><div class="AvatarStatus"><div class="AvatarStatus-avatar"><img class="Avatar" src="./Alfred, Eskom&#39;s chatbot_files/avatar.png"></div><div class="AvatarStatus-status"><div class="StatusIndicator
+            StatusIndicator--online
+        "></div></div></div><div class="MessagesList-messageItem"><div class="MessageContainer "><div class="Text fade-appear-done fade-enter-done"><div><div class=""><p>Hello! &#128075;</p>
+<p>I’m <em>Alfred</em> – Eskom’s ever-present, amped-to-assist, AI-enhanced chatbot.</p>
+<p>What’s your name?</p></div></div></div></div></div></li><li class="MessagesList-item is-local"><div class="MessagesList-messageItem"><div class="MessageContainer is-local"><div class="Text is-local fade-appear-done fade-enter-done"><div><div class=""><p>julius</p></div></div></div></div></div></li><li class="MessagesList-item"><div class="AvatarStatus"><div class="AvatarStatus-avatar"><img class="Avatar" src="./Alfred, Eskom&#39;s chatbot_files/avatar.png"></div><div class="AvatarStatus-status"><div class="StatusIndicator
+            StatusIndicator--online
+        "></div></div></div><div class="MessagesList-messageItem"><div class="MessageContainer "><div class="Text fade-appear-done fade-enter-done"><div><div class=""><p>Nice to meet you, julius!</p>
+<p>Did I get that right or do you need to change your name?</p></div></div></div><div class="ButtonContainer"><button class="Button Button--solid">&#9989; It’s right</button><button class="Button Button--solid">&#10060; Change it</button></div></div></div></li><li class="MessagesList-item is-local"><div class="MessagesList-messageItem"><div class="MessageContainer is-local"><div class="Text is-local fade-appear-done fade-enter-done"><div><div class=""><p>&#9989; It’s right</p></div></div></div></div></div></li><li class="MessagesList-item"><div class="AvatarStatus"><div class="AvatarStatus-avatar"><img class="Avatar" src="./Alfred, Eskom&#39;s chatbot_files/avatar.png"></div><div class="AvatarStatus-status"><div class="StatusIndicator
+            StatusIndicator--online
+        "></div></div></div><div class="MessagesList-messageItem"><div class="MessageContainer "><div class="Text fade-appear-done fade-enter-done"><div><div class=""><p>Thanks, julius!</p>
+<p>Next up, I need to know what type of Eskom customer you are.</p>
+<p>Which is it?</p>
+<p>&#8505;&#65039; <em>If you receive an Eskom bill each month, you are <em>postpaid</em>. If you buy credits for your meter, you are <em>prepaid</em>.</em></p></div></div></div><div class="ButtonContainer"><button class="Button Button--solid">&#9889; Postpaid</button><button class="Button Button--solid">&#9889; Prepaid</button><button class="Button Button--solid">&#9889; Neither</button></div></div></div></li></ul></div><div class="ChatContainer-input is-expected-input"><div class="Input"><input class="Input-input" type="text" placeholder="Write message..." value=""><button class="Input-send">Send</button></div></div></div></div>
+    </div>
+    <script>
+      function getOrSetAliasCookie() {
+        const cookieName = 'user_alias';
+        const existingAlias = getCookie(cookieName);
+
+        if (existingAlias) {
+            // console.log(`Using existing alias: ${existingAlias}`);
+            return existingAlias;
+        } else {
+            const newAlias = generateUniqueAlias();
+            setCookie(cookieName, newAlias, 365); // Set the cookie for 1 year
+            // console.log(`Generated and saved new alias: ${newAlias}`);
+            return newAlias;
+        }
+      }
+
+      function getCookie(name) {
+          const value = `; ${document.cookie}`;
+          const parts = value.split(`; ${name}=`);
+          if (parts.length === 2) return parts.pop().split(';').shift();
+      }
+
+      function setCookie(name, value, days) {
+          const date = new Date();
+          date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+          const expires = `expires=${date.toUTCString()}`;
+          document.cookie = `${name}=${value}; ${expires}; path=/`;
+      }
+
+      function generateUniqueAlias() {
+          return 'alias_' + Math.random().toString(36).substr(2, 9);
+      }
+    </script>
+    <script>
+      const alias = getOrSetAliasCookie();
+      const myChatElement = document.getElementById("my-chat-element");
+    
+      // Initialize ReactWebChat with default export
+      const reactWebChat = new ReactWebChat.default({
+        url: "https://chat.prd.alfred-infra.co.za/chat_sockjs",
+        element: myChatElement,
+        avatar: "./avatar.png",
+        network: {
+          channel_id: "930da254-5752-4bf0-96c4-d16df38f3e19",
+          address: alias
+        }
+      });
+    </script>
+    <script>
+      // A separate script block to update the button text
+      // Using a polling approach to check for the button
+      (function checkForSendButton() {
+        const sendButton = document.getElementsByClassName("Input-send")[0];
+        if (sendButton) {
+          sendButton.innerHTML = 'Send';
+        } else {
+          // If button not found, check again after a short delay
+          requestAnimationFrame(checkForSendButton);
+        }
+      })();
+    </script>
+  <script defer="" src="./Alfred, Eskom&#39;s chatbot_files/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon="{&quot;version&quot;:&quot;2024.11.0&quot;,&quot;token&quot;:&quot;62aef79198dc496098522fa9d095ba20&quot;,&quot;server_timing&quot;:{&quot;name&quot;:{&quot;cfCacheStatus&quot;:true,&quot;cfEdge&quot;:true,&quot;cfExtPri&quot;:true,&quot;cfL4&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfSpeedBrain&quot;:true},&quot;location_startswith&quot;:null}}" crossorigin="anonymous"></script>
+
+
+</body></html>

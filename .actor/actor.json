@@ -1,13 +1,19 @@
 {
     "actorSpecification": 1,
-    "name": "my-actor-1",
-    "title": "Empty Python project",
-    "description": "Empty project in Python.",
-    "version": "0.0",
+    "name": "energy-intelligence",
+    "title": "Visita Energy Intelligence Actor",
+    "description": "Monitors Eskom's live loadshedding status and maps it to the comprehensive schedule database.",
+    "version": "0.1",
+    "input": "./input_schema.json",
+    "output": "./output_schema.json",
+    "storages": {
+        "dataset": "./dataset_schema.json"
+    },
     "buildTag": "latest",
+    "readme": "../AGENTS.md",
     "meta": {
         "templateId": "python-empty",
-        "generatedBy": "<FILL-IN-MODEL>"
+        "generatedBy": "Antigravity Agent"
     },
     "dockerfile": "../Dockerfile"
 }

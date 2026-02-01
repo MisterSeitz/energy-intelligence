@@ -1,0 +1,11 @@
+{
+    "actorOutputSchemaVersion": 1,
+    "title": "Daily Power Intelligence Output",
+    "properties": {
+        "latestStatus": {
+            "type": "string",
+            "title": "Latest Power Status",
+            "template": "{{links.apiDefaultDatasetUrl}}/items"
+        }
+    }
+}
