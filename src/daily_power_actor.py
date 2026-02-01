@@ -94,26 +94,32 @@ class PowerIntelligence:
              except Exception as e:
                  Actor.log.warning(f"Fallback API failed: {e}")
 
-        # Method 3: Local Dev Fallback
-        if stage == -1 and os.path.exists("Eskom/Eskom load shedding.html"):
-             Actor.log.warning("Falling back to local file 'Eskom/Eskom load shedding.html' for dev/testing.")
-             try:
-                 with open("Eskom/Eskom load shedding.html", "r") as f:
-                    html = f.read()
-                    soup = BeautifulSoup(html, "html.parser")
-                    status_span = soup.find("span", {"id": "lsstatus"})
-                    raw_text = status_span.get_text(strip=True) if status_span else "Unknown"
-                    if "NOT LOAD SHEDDING" in raw_text.upper():
-                        stage = 0
-                        status_text = "Suspended"
-                    elif "STAGE" in raw_text.upper():
-                        import re
-                        match = re.search(r"STAGE\s*(\d+)", raw_text.upper())
-                        if match:
-                            stage = int(match.group(1))
-                            status_text = "Active"
-             except Exception as e:
-                 Actor.log.error(f"Failed to read local fallback file: {e}")
+        # Method 3: Local Dev Fallback (Only if NOT on Apify)
+        # We check APIFY_IS_AT_HOME to avoid using stale local files in production
+        is_production = os.environ.get("APIFY_IS_AT_HOME") == "1"
+        
+        if stage == -1:
+            if not is_production and os.path.exists("Eskom/Eskom load shedding.html"):
+                 Actor.log.warning("Falling back to local file 'Eskom/Eskom load shedding.html' for dev/testing.")
+                 try:
+                     with open("Eskom/Eskom load shedding.html", "r") as f:
+                        html = f.read()
+                        soup = BeautifulSoup(html, "html.parser")
+                        status_span = soup.find("span", {"id": "lsstatus"})
+                        raw_text = status_span.get_text(strip=True) if status_span else "Unknown"
+                        if "NOT LOAD SHEDDING" in raw_text.upper():
+                            stage = 0
+                            status_text = "Suspended"
+                        elif "STAGE" in raw_text.upper():
+                            import re
+                            match = re.search(r"STAGE\s*(\d+)", raw_text.upper())
+                            if match:
+                                stage = int(match.group(1))
+                                status_text = "Active"
+                 except Exception as e:
+                     Actor.log.error(f"Failed to read local fallback file: {e}")
+            elif is_production:
+                 Actor.log.warning("Running on Apify: Skipping local file fallback to avoid reporting stale data.")
 
         return {
             "stage": stage,
