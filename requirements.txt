@@ -10,3 +10,5 @@ python-dotenv
 openai
 geopandas
 shapely
+beautifulsoup4
+requests
