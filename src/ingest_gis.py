@@ -24,7 +24,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 ESKOM_DIR = Path("Eskom")
 
 def ingest_grid_zone(filepath: Path, zone_type: str):
-    print(f"Reading Shapefile: {filepath}...")
+    print(f"🗺️ Reading Shapefile: {filepath}...")
     try:
         gdf = gpd.read_file(filepath)
         
@@ -32,7 +32,7 @@ def ingest_grid_zone(filepath: Path, zone_type: str):
         if gdf.crs != "EPSG:4326":
            gdf = gdf.to_crs("EPSG:4326")
 
-        print(f"  Found {len(gdf)} features.")
+        print(f"  ℹ️ Found {len(gdf)} features.")
         successful = 0
         
         for index, row in gdf.iterrows():
@@ -62,19 +62,19 @@ def ingest_grid_zone(filepath: Path, zone_type: str):
                 res = supabase.schema("geo_intelligence").table("grid_zones").insert(payload).execute()
                 successful += 1
             except Exception as e:
-                print(f"    Failed to insert {name}: {e}")
+                print(f"    ❌ Failed to insert {name}: {e}")
                 
-        print(f"  Ingested {successful}/{len(gdf)} zones.")
+        print(f"  ✅ Ingested {successful}/{len(gdf)} zones.")
 
     except Exception as e:
-        print(f"Failed to process {filepath}: {e}")
+        print(f"❌ Failed to process {filepath}: {e}")
 
 def extract_power_stations(xlsx_path: Path):
-    print(f"Checking for Power Stations in {xlsx_path}...")
+    print(f"🏭 Checking for Power Stations in {xlsx_path}...")
     try:
         # Load sheets to check for coords
         xls = pd.ExcelFile(xlsx_path)
-        print(f"  Sheets: {xls.sheet_names}")
+        print(f"  ℹ️ Sheets: {xls.sheet_names}")
         
         # Heuristic: Check common sheets or all for 'Latitude'/'Longitude'
         for sheet in xls.sheet_names:
@@ -84,7 +84,7 @@ def extract_power_stations(xlsx_path: Path):
                 
                 # Check for lat/long columns
                 if any("lat" in c for c in cols) and any("long" in c for c in cols):
-                    print(f"  Found potential coordinates in sheet '{sheet}'!")
+                    print(f"  📍 Found potential coordinates in sheet '{sheet}'!")
                     
                     # Normalize columns
                     lat_col = next(c for c in df.columns if "lat" in c.lower())
@@ -92,7 +92,7 @@ def extract_power_stations(xlsx_path: Path):
                     name_col = next((c for c in df.columns if "name" in c.lower() or "station" in c.lower()), None)
                     
                     if not name_col:
-                        print("    No component name column found, skipping.")
+                        print("    ⚠️ No component name column found, skipping.")
                         continue
                         
                     successful = 0
@@ -123,12 +123,12 @@ def extract_power_stations(xlsx_path: Path):
                         except Exception as ex:
                             continue
                             
-                    print(f"  Ingested {successful} Power Stations from '{sheet}'")
+                    print(f"  ✅ Ingested {successful} Power Stations from '{sheet}'")
             except Exception as e:
                 pass
 
     except Exception as e:
-        print(f"Failed to read Excel report: {e}")
+        print(f"❌ Failed to read Excel report: {e}")
 
 def main():
     if not ESKOM_DIR.exists():

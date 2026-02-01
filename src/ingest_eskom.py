@@ -110,7 +110,7 @@ def process_file(filepath: Path):
     if "koeberg" in filename.lower() or "nuclear" in filename.lower() or "tisf" in filename.lower():
         classification = "nuclear_energy"
     
-    print(f"Processing {filename} as {classification}...")
+    print(f"📄 Processing {filename} as {classification}...")
 
     raw_text = ""
     ai_summary = ""
@@ -140,7 +140,7 @@ def process_file(filepath: Path):
     # 2. Analyze with LLM if we have text
     analysis = {}
     if raw_text and len(raw_text) > 50:
-        print(f"   Running AI Analysis on {filename}...")
+        print(f"   🤖 Running AI Analysis on {filename}...")
         analysis = analyze_with_llm(raw_text, filename, classification)
     
     # 3. Merge Analysis
@@ -193,16 +193,16 @@ def process_file(filepath: Path):
         
         if existing.data:
             rec_id = existing.data[0]['id']
-            print(f"   Updating {filename} (ID: {rec_id})...")
+            print(f"   🔄 Updating {filename} (ID: {rec_id})...")
             # Update
             supabase.schema("ai_intelligence").table(classification).update(payload).eq("id", rec_id).execute()
         else:
             # Insert
             supabase.schema("ai_intelligence").table(classification).insert(payload).execute()
-            print(f"   Inserted {filename}")
+            print(f"   ✅ Inserted {filename}")
             
     except Exception as e:
-        print(f"Failed to upsert {filename}: {e}")
+        print(f"   ❌ Failed to upsert {filename}: {e}")
 
 def main():
     if not ESKOM_DIR.exists():

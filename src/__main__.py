@@ -1,6 +1,9 @@
 import asyncio
 
-from .main import main
+from .daily_power_actor import PowerIntelligence
 
-# Execute the Actor entry point.
+async def main():
+    actor = PowerIntelligence()
+    await actor.run()
+
 asyncio.run(main())

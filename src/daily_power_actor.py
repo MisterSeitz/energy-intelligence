@@ -81,20 +81,20 @@ class PowerIntelligence:
 
     async def run(self):
         await Actor.init()
-        Actor.log.info("⚡ Starting Daily Power Intelligence Actor...")
+        Actor.log.info("🚀 Starting Daily Power Intelligence Actor...")
         
         # 1. Fetch Eskom Loadshedding Status
         eskom_data = self.fetch_eskom_status()
-        Actor.log.info(f"Eskom Status: Stage {eskom_data['stage']} ({eskom_data['status']})")
+        Actor.log.info(f"⚡ Eskom Status: Stage {eskom_data['stage']} ({eskom_data['status']})")
 
         # 2. Fetch Power Alert API
         power_alert_color = await self.fetch_power_alert()
-        Actor.log.info(f"Power Alert Level: {power_alert_color}")
+        Actor.log.info(f"🚦 Power Alert Level: {power_alert_color}")
         
         # 3. Construct Payload
         # We assume 'stage' > -1 for a valid update. If -1, we might skip upsert or log error.
         if eskom_data['stage'] == -1 and power_alert_color == "Unknown":
-            Actor.log.error("Failed to fetch data from both sources. Aborting upsert.")
+            Actor.log.error("❌ Failed to fetch data from both sources. Aborting upsert.")
             await Actor.exit(exit_code=1)
             return
 
@@ -110,13 +110,14 @@ class PowerIntelligence:
             }
         }
         
-        Actor.log.info(f"Persisting data: {payload}")
+        Actor.log.info(f"💾 Persisting data: {payload}")
         
         # Insert into Supabase
         try:
             self.supabase.schema("ai_intelligence").table("power_alerts").insert(payload).execute()
+            Actor.log.info("✅ Data successfully pushed to Supabase")
         except Exception as e:
-             Actor.log.error(f"Supabase Insert Failed: {e}")
+             Actor.log.error(f"❌ Supabase Insert Failed: {e}")
         
         # Push to Apify Dataset
         await Actor.push_data(payload)
