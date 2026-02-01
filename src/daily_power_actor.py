@@ -41,42 +41,84 @@ class PowerIntelligence:
 
     def fetch_eskom_status(self):
         """Scrapes the current loadshedding status from Eskom."""
+        # Method 1: Scrape Main Page
         url = "https://loadshedding.eskom.co.za/"
-        html = ""
         stage = -1
         status_text = "Unknown"
+        raw_text = ""
         
         try:
             response = requests.get(url, timeout=15)
-            html = response.text
+            if response.status_code == 200:
+                html = response.text
+                soup = BeautifulSoup(html, "html.parser")
+                status_span = soup.find("span", {"id": "lsstatus"})
+                raw_text = status_span.get_text(strip=True) if status_span else "Unknown"
+                
+                if "NOT LOAD SHEDDING" in raw_text.upper():
+                    stage = 0
+                    status_text = "Suspended"
+                elif "STAGE" in raw_text.upper():
+                    import re
+                    match = re.search(r"STAGE\s*(\d+)", raw_text.upper())
+                    if match:
+                        stage = int(match.group(1))
+                        status_text = "Active"
+                else:
+                    # If we found text but didn't match standard patterns
+                    if raw_text != "Unknown":
+                        status_text = raw_text
+            else:
+                 Actor.log.warning(f"Eskom Main Site returned {response.status_code}")
         except Exception as e:
-            Actor.log.warning(f"Network error scraping Eskom, falling back to local file for dev: {e}")
-            if os.path.exists("Eskom/Eskom load shedding.html"):
+            Actor.log.warning(f"Error scraping Eskom Main Site: {e}")
+
+        # Method 2: Fallback to GetStatus API if Method 1 failed
+        if stage == -1:
+             Actor.log.info("Attempting fallback to Eskom GetStatus API...")
+             try:
+                 api_url = "https://loadshedding.eskom.co.za/LoadShedding/GetStatus"
+                 resp = requests.get(api_url, timeout=15)
+                 if resp.status_code == 200:
+                     val = int(resp.text.strip())
+                     if val > 0:
+                         # Mapping: 1 -> Stage 0, 2 -> Stage 1, etc.
+                         stage = val - 1
+                         status_text = "Active" if stage > 0 else "Suspended"
+                         raw_text = f"API Value: {val}"
+                         Actor.log.info(f"Fallback API success: Stage {stage}")
+                     else:
+                         Actor.log.warning(f"Fallback API returned invalid value: {val}")
+                 else:
+                     Actor.log.warning(f"Fallback API returned {resp.status_code}")
+             except Exception as e:
+                 Actor.log.warning(f"Fallback API failed: {e}")
+
+        # Method 3: Local Dev Fallback
+        if stage == -1 and os.path.exists("Eskom/Eskom load shedding.html"):
+             Actor.log.warning("Falling back to local file 'Eskom/Eskom load shedding.html' for dev/testing.")
+             try:
                  with open("Eskom/Eskom load shedding.html", "r") as f:
                     html = f.read()
+                    soup = BeautifulSoup(html, "html.parser")
+                    status_span = soup.find("span", {"id": "lsstatus"})
+                    raw_text = status_span.get_text(strip=True) if status_span else "Unknown"
+                    if "NOT LOAD SHEDDING" in raw_text.upper():
+                        stage = 0
+                        status_text = "Suspended"
+                    elif "STAGE" in raw_text.upper():
+                        import re
+                        match = re.search(r"STAGE\s*(\d+)", raw_text.upper())
+                        if match:
+                            stage = int(match.group(1))
+                            status_text = "Active"
+             except Exception as e:
+                 Actor.log.error(f"Failed to read local fallback file: {e}")
 
-        if html:
-            soup = BeautifulSoup(html, "html.parser")
-            
-            # Logic 1: Check the Status Text
-            status_span = soup.find("span", {"id": "lsstatus"})
-            status_text = status_span.get_text(strip=True) if status_span else "Unknown"
-            
-            # Logic 2: Check the Stage
-            if "NOT LOAD SHEDDING" in status_text.upper():
-                stage = 0
-                status_text = "Suspended"
-            elif "STAGE" in status_text.upper():
-                import re
-                match = re.search(r"STAGE\s*(\d+)", status_text.upper())
-                if match:
-                    stage = int(match.group(1))
-                    status_text = "Active"
-                    
         return {
             "stage": stage,
             "status": status_text,
-            "raw_text": status_text
+            "raw_text": raw_text if raw_text else status_text
         }
 
     async def run(self):
