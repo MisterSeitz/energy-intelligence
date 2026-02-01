@@ -16,21 +16,6 @@
             "default": 30,
             "minimum": 1,
             "maximum": 300
-        },
-        "supabaseUrl": {
-            "title": "Supabase URL",
-            "type": "string",
-            "description": "Optional: Override NEXT_PUBLIC_SUPABASE_URL env var.",
-            "editor": "textfield",
-            "nullable": true
-        },
-        "supabaseKey": {
-            "title": "Supabase Service Role Key",
-            "type": "string",
-            "description": "Optional: Override SUPABASE_SERVICE_ROLE_KEY env var.",
-            "editor": "textfield",
-            "isSecret": true,
-            "nullable": true
         }
     }
 }

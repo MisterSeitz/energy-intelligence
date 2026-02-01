@@ -14,7 +14,7 @@ from openai import OpenAI
 load_dotenv('.env.local')
 
 # Supabase setup
-SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_URL = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 ALIBABA_API_KEY = os.getenv("ALIBABA_CODING_API_KEY")
 
