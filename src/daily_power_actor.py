@@ -129,49 +129,81 @@ class PowerIntelligence:
 
     async def run(self):
         await Actor.init()
-        Actor.log.info("🚀 Starting Daily Power Intelligence Actor...")
+        # Fetch Input
+        actor_input = await Actor.get_input() or {}
+        mode = actor_input.get("mode", "status")
+        local_reference = actor_input.get("local_reference", False)
         
-        # 1. Fetch Eskom Loadshedding Status
-        eskom_data = self.fetch_eskom_status()
-        Actor.log.info(f"⚡ Eskom Status: Stage {eskom_data['stage']} ({eskom_data['status']})")
+        Actor.log.info(f"🚀 Starting Power Intelligence Actor in '{mode}' mode...")
 
-        # 2. Fetch Power Alert API
-        power_alert_color = await self.fetch_power_alert()
-        Actor.log.info(f"🚦 Power Alert Level: {power_alert_color}")
-        
-        # 3. Construct Payload
-        # We assume 'stage' > -1 for a valid update. If -1, we might skip upsert or log error.
-        if eskom_data['stage'] == -1 and power_alert_color == "Unknown":
-            Actor.log.error("❌ Failed to fetch data from both sources. Aborting upsert.")
-            await Actor.exit(exit_code=1)
+        if mode in ["hourly", "weekly", "all"]:
+            # Import here to avoid circular dependencies or strict requirement if not needed
+            from .ingest_deterministic import upsert_grid_stats, upsert_weekly_outages, LOCAL_REF
+            
+            local_root = LOCAL_REF if local_reference else None
+            
+            if mode in ["hourly", "all"]:
+                Actor.log.info("📊 Running Hourly Grid Stats Ingestion...")
+                try:
+                    upsert_grid_stats(local_root)
+                except Exception as e:
+                     Actor.log.error(f"Hourly ingestion failed: {e}")
+
+            if mode in ["weekly", "all"]:
+                Actor.log.info("📅 Running Weekly Outages Ingestion...")
+                try:
+                    upsert_weekly_outages(local_root)
+                except Exception as e:
+                     Actor.log.error(f"Weekly ingestion failed: {e}")
+            
+            Actor.log.info(f"✅ Ingestion mode '{mode}' complete.")
+            await Actor.exit()
             return
 
-        payload = {
-            "stage": eskom_data['stage'] if eskom_data['stage'] != -1 else 0, # Default to 0 if failed? Or keep previous? 
-                                                                             # Safer to fail if critical, but for now defaulting 0 is risky.
-                                                                             # Let's trust fetch_eskom_status error handling/local fallback.
-            "status": eskom_data['status'],
-            "raw_response": {
-                "eskom_text": eskom_data['raw_text'],
-                "power_alert_color": power_alert_color,
-                "provider": "Eskom + PowerAlert.co.za"
+        # Default Mode: Status Check
+        if mode == "status":
+            # 1. Fetch Eskom Loadshedding Status
+            eskom_data = self.fetch_eskom_status()
+            Actor.log.info(f"⚡ Eskom Status: Stage {eskom_data['stage']} ({eskom_data['status']})")
+
+            # 2. Fetch Power Alert API
+            power_alert_color = await self.fetch_power_alert()
+            Actor.log.info(f"🚦 Power Alert Level: {power_alert_color}")
+            
+            # 3. Construct Payload
+            # We assume 'stage' > -1 for a valid update. If -1, we might skip upsert or log error.
+            if eskom_data['stage'] == -1 and power_alert_color == "Unknown":
+                Actor.log.error("❌ Failed to fetch data from both sources. Aborting upsert.")
+                await Actor.exit(exit_code=1)
+                return
+
+            payload = {
+                "stage": eskom_data['stage'] if eskom_data['stage'] != -1 else 0, 
+                "status": eskom_data['status'],
+                "raw_response": {
+                    "eskom_text": eskom_data['raw_text'],
+                    "power_alert_color": power_alert_color,
+                    "provider": "Eskom + PowerAlert.co.za"
+                }
             }
-        }
-        
-        Actor.log.info(f"💾 Persisting data: {payload}")
-        
-        # Insert into Supabase
-        try:
-            self.supabase.schema("ai_intelligence").table("power_alerts").insert(payload).execute()
-            Actor.log.info("✅ Data successfully pushed to Supabase")
-        except Exception as e:
-             Actor.log.error(f"❌ Supabase Insert Failed: {e}")
-        
-        # Push to Apify Dataset
-        await Actor.push_data(payload)
-        
-        Actor.log.info("✅ Actor run complete.")
-        await Actor.exit()
+            
+            Actor.log.info(f"💾 Persisting data: {payload}")
+            
+            # Insert into Supabase
+            try:
+                self.supabase.schema("ai_intelligence").table("power_alerts").insert(payload).execute()
+                Actor.log.info("✅ Data successfully pushed to Supabase")
+            except Exception as e:
+                 Actor.log.error(f"❌ Supabase Insert Failed: {e}")
+            
+            # Push to Apify Dataset
+            await Actor.push_data(payload)
+            
+            Actor.log.info("✅ Actor run complete.")
+            await Actor.exit()
+        else:
+            Actor.log.error(f"Unknown mode: {mode}")
+            await Actor.exit(exit_code=1)
 
 if __name__ == "__main__":
     import asyncio

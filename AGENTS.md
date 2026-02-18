@@ -26,19 +26,19 @@ This actor operates as a **Backend Scraper & Ingestor**. It does **NOT** handle 
 
 ### System Components
 
-#### A. The Live Monitor (`src/daily_power_actor.py`)
-*   **Role:** The Heartbeat.
-*   **Frequency:** Hourly (Every 60 minutes).
+#### A. The Universal Actor (`src/daily_power_actor.py`)
+*   **Role:** The Heartbeat & Archivist.
+*   **Modes:**
+    1.  `status` (Default): Checks loadshedding stage & grid color. (Run Hourly).
+    2.  `hourly`: Ingests hourly grid stats (Demand, Generation, Renewables). (Run Hourly).
+    3.  `weekly`: Ingests weekly outage stats. (Run Daily/Weekly).
 *   **Target:** 
-    1. `loadshedding.eskom.co.za` (Loadshedding Stage)
-    2. `poweralert.co.za` (Grid Health Color: Green/Gold/Black/Red)
-*   **Output:** Upserts to `ai_intelligence.power_alerts`.
-*   **Logic:**
-    1.  Fetches `https://loadshedding.eskom.co.za/` for Stage (0-8).
-    2.  Fetches `https://www.poweralert.co.za/PowerAlertAPI/api/PowerAlertForecast/CurrentSystemStatus` for Color.
-    3.  Upserts the combined state to Supabase.
+    *   `loadshedding.eskom.co.za` (Live Stage)
+    *   `poweralert.co.za` (Live Color)
+    *   `eskom.co.za/dataportal` (Historical CSVs via `src/ingest_deterministic.py`)
+*   **Output:** Upserts to `ai_intelligence` tables.
 
-#### B. The Static Ingestors (`src/ingest_*.py`)
+#### B. The Static Ingestors
 These are "One-Off" or "Infrequent" scripts used to seed the reference data.
 *   `src/ingest_schedule.py`: Ingests the Master Spreadsheet of loadshedding schedules into `geo_intelligence.loadshedding_schedule`.
 *   `src/ingest_gis.py`: Processes GeoJSON/Shapefiles to map Suburbs to Blocks (`geo_intelligence.loadshedding_suburbs`) and ingest Power Station locations (`geo_intelligence.locations`).
@@ -48,7 +48,9 @@ We write to the following authoritative tables:
 
 | Schema | Table | Purpose | Source |
 | :--- | :--- | :--- | :--- |
-| `ai_intelligence` | `power_alerts` | Live Status (Stage, Text) | `daily_power_actor.py` |
+| `ai_intelligence` | `power_alerts` | Live Status (Stage, Text) | `daily_power_actor.py` (status) |
+| `ai_intelligence` | `grid_stats` | Hourly Grid Data (Demand, Gen) | `daily_power_actor.py` (hourly) |
+| `ai_intelligence` | `outages_weekly` | Weekly Outage Stats | `daily_power_actor.py` (weekly) |
 | `geo_intelligence` | `loadshedding_schedule` | The Static Schedule (Time vs Stage) | `ingest_schedule.py` |
 | `geo_intelligence` | `loadshedding_suburbs` | Suburb -> Block Mapping | `ingest_gis.py` |
 | `geo_intelligence` | `locations` | Power Station Coordinates | `ingest_gis.py` |

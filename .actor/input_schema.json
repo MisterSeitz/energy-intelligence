@@ -1,21 +1,35 @@
 {
-    "title": "Daily Power Intelligence Input",
+    "title": "Energy Intelligence Input",
     "type": "object",
     "schemaVersion": 1,
     "properties": {
-        "debugMode": {
-            "title": "Debug Mode",
-            "type": "boolean",
-            "description": "Enable verbose logging.",
-            "default": false
+        "mode": {
+            "title": "Run Mode",
+            "type": "string",
+            "description": "Select the operation mode.",
+            "default": "status",
+            "editor": "select",
+            "enum": [
+                "status",
+                "hourly",
+                "weekly",
+                "all"
+            ],
+            "enumTitles": [
+                "Check Status (Default)",
+                "Ingest Hourly Grid Stats",
+                "Ingest Weekly Outages",
+                "Ingest All Data"
+            ]
         },
-        "timeoutSecs": {
-            "title": "Request Timeout",
-            "type": "integer",
-            "description": "Timeout for Eskom API requests in seconds.",
-            "default": 30,
-            "minimum": 1,
-            "maximum": 300
+        "local_reference": {
+            "title": "Use Local Reference Files",
+            "type": "boolean",
+            "description": "If enabled, uses local CSV files from 'reference/' directory instead of fetching from Eskom URL. Useful for debugging or backfilling.",
+            "default": false
         }
-    }
+    },
+    "required": [
+        "mode"
+    ]
 }

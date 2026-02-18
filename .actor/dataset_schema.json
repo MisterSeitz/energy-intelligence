@@ -1,7 +1,6 @@
 {
     "actorSpecification": 1,
     "fields": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
             "stage": {
@@ -19,8 +18,17 @@
                 "title": "Raw Response",
                 "description": "Raw data from source",
                 "properties": {
-                    "text": {
-                        "type": "string"
+                    "eskom_text": {
+                        "type": "string",
+                        "title": "Eskom Text"
+                    },
+                    "power_alert_color": {
+                        "type": "string",
+                        "title": "Power Alert Color"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "title": "Provider"
                     }
                 }
             }
@@ -44,16 +52,13 @@
                 "component": "table",
                 "properties": {
                     "stage": {
-                        "label": "⚡ Stage",
-                        "format": "number"
+                        "label": "⚡ Stage"
                     },
                     "status": {
-                        "label": "Status",
-                        "format": "text"
+                        "label": "Status"
                     },
                     "raw_response": {
-                        "label": "Raw Data",
-                        "format": "object"
+                        "label": "Details"
                     }
                 }
             }
