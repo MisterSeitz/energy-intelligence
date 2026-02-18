@@ -13,13 +13,13 @@ from datetime import datetime
 load_dotenv('.env.local')
 load_dotenv('../.env.local')
 
-SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL") # Updated to match provided key
+SUPABASE_URL = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     # Debug print to help identify what is missing
     print(f"DEBUG: URL={SUPABASE_URL}, KEY={SUPABASE_KEY[:5]}..." if SUPABASE_KEY else "KEY=None")
-    raise ValueError("Missing Supabase credentials (SUPABASE_SERVICE_ROLE_KEY/NEXT_PUBLIC_SUPABASE_URL) in .env.local")
+    raise ValueError("Missing Supabase credentials (SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY)")
 
 # Supabase REST API Headers
 HEADERS = {
