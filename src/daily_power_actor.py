@@ -20,18 +20,28 @@ class PowerIntelligence:
 
     async def fetch_power_alert(self):
         """Fetches the official Power Alert status (Green, Orange, Red) from poweralert.co.za API."""
-        url = "https://www.poweralert.co.za/PowerAlertAPI/api/PowerAlertForecast/CurrentSystemStatus"
+        # The API requires a JSONP callback parameter, otherwise it returns 500.
+        url = "https://www.poweralert.co.za/PowerAlertAPI/api/PowerAlertForecast/CurrentSystemStatus?callback=jQuery331"
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer": "https://www.poweralert.co.za/",
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+        }
+
         try:
-            # Using synchronous requests inside async method for simplicity (or use aiohttp if preferred, 
-            # but requests is already imported and lightweight enough for 2 calls)
-            # Running in executor to avoid blocking loop if we were doing heavy work, 
-            # but here straightforward requests is fine for this simple actor. 
-            # Ideally use aiohttp, but let's stick to requests to minimize unnecessary refactors.
-            response = requests.get(url, timeout=15)
+            response = requests.get(url, headers=headers, timeout=15)
             if response.status_code == 200:
-                data = response.json()
-                # Expected format: {"Color": "Green", ...}
-                return data.get("Color", "Unknown")
+                # Response format: /**/ typeof jQuery331 === 'function' && jQuery331({...});
+                import re
+                match = re.search(r'jQuery\d+\((.*)\)', response.text)
+                if match:
+                    json_str = match.group(1)
+                    data = json.loads(json_str)
+                    return data.get("Color", "Unknown")
+                else:
+                    Actor.log.warning(f"Could not parse PowerAlert JSONP response: {response.text[:50]}...")
+                    return "Unknown"
             else:
                 Actor.log.warning(f"PowerAlert API returned {response.status_code}")
                 return "Unknown"
