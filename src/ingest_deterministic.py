@@ -65,23 +65,23 @@ def fetch_csv_as_df(url_key, local_root=None):
         if rel_path:
             local_file = os.path.join(local_root, rel_path)
             if os.path.exists(local_file):
-                print(f"📂 Reading local file: {local_file}")
+                print(f">> Reading local file: {local_file}")
                 return pd.read_csv(local_file)
             else:
-                print(f"⚠️ Local file not found: {local_file}, trying URL...")
+                print(f"!! Local file not found: {local_file}, trying URL...")
     
     url = URLS.get(url_key)
     if not url:
         raise ValueError(f"Unknown URL key: {url_key}")
         
-    print(f"🌐 Fetching URL: {url}...")
+    print(f">> Fetching URL: {url}...")
     try:
         response = requests.get(url)
         response.raise_for_status()
         csv_content = StringIO(response.text)
         return pd.read_csv(csv_content)
     except Exception as e:
-        print(f"❌ Error fetching {url}: {e}")
+        print(f"XX Error fetching {url}: {e}")
         # Only retry local if we haven't already (e.g. strict URL mode but failed)
         # But here logic is: if local_root was passed we tried it first.
         # If not passed, we can try default 'reference' as fallback?
@@ -95,7 +95,7 @@ def clean_column_names(df):
     return df
 
 def upsert_grid_stats(local_root=None):
-    print("🚀 Starting Grid Stats Ingestion (Hourly)...")
+    print(">> Starting Grid Stats Ingestion (Hourly)...")
     
     # 1. Fetch Data
     try:
@@ -164,12 +164,12 @@ def upsert_grid_stats(local_root=None):
             response.raise_for_status()
             print(f"   Upserted batch {i//BATCH_SIZE + 1}/{(len(records)//BATCH_SIZE)+1}")
         except Exception as e:
-            print(f"   ❌ Error upserting batch {i}: {e}")
+            print(f"   XX Error upserting batch {i}: {e}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"      Response: {e.response.text}")
 
 def upsert_weekly_outages(local_root=None):
-    print("🚀 Starting Weekly Outages Ingestion...")
+    print(">> Starting Weekly Outages Ingestion...")
     try:
         df = fetch_csv_as_df("weekly_outages", local_root)
     except Exception as e:
@@ -204,9 +204,9 @@ def upsert_weekly_outages(local_root=None):
             url = f"{SUPABASE_URL}/rest/v1/outages_weekly"
             response = requests.post(url, json=records, headers=HEADERS)
             response.raise_for_status()
-            print(f"✅ Upserted {len(records)} outage records.")
+            print(f">> Upserted {len(records)} outage records.")
         except Exception as e:
-            print(f"❌ Error upserting outages: {e}")
+            print(f"XX Error upserting outages: {e}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"      Response: {e.response.text}")
 
